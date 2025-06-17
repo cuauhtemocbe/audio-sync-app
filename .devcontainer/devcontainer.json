@@ -4,8 +4,8 @@
   "service": "audio-sync-app",
   "workspaceFolder": "/workspace",
   "mounts": [
-		"source=${localWorkspaceFolder},target=/workspace,type=bind"
-	],
+    "source=${localWorkspaceFolder},target=/workspace,type=bind"
+  ],
   "settings": {
     "terminal.integrated.defaultProfile.linux": "bash"
   },
