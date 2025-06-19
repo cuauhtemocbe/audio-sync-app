@@ -49,9 +49,12 @@ export default function App() {
           <span
             key={idx}
             onClick={w.type === "text" ? () => seekTo(w.ts) : undefined}
-            className={`${
-              w.type === "text" ? "cursor-pointer" : ""
-            } ${idx === activeWordIndex ? "underline underline-offset-4 decoration-orange-500 font-bold" : ""}`}
+            className={`cursor-pointer underline underline-offset-4 transition-colors duration-150 ${
+              idx === activeWordIndex
+                ? "decoration-orange-500 text-orange-400"
+                : "decoration-transparent text-gray-100"
+            }`}
+            style={{ textUnderlinePosition: "under" }}
           >
             {w.value}
           </span>
