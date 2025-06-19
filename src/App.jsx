@@ -7,14 +7,15 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(0);
 
   // Obtener las palabras del transcript
-  const words = transcript.monologues.flatMap((mono) =>
-    mono.elements.filter((el) => el.type === "text")
-  );
+  const words = transcript.monologues.flatMap((mono) => mono.elements);
 
-  // Calcular la palabra activa (por índice)
-  const activeWordIndex = words.findIndex(
-    (w) => currentTime >= w.ts && currentTime <= w.end_ts
-  );
+  // Calcular la palabra activa (subrayado se mantiene hasta que la siguiente palabra comience)
+  const activeWordIndex = words.findIndex((w, idx) => {
+    if (w.type !== "text" || w.ts === undefined) return false;
+    const next = words.slice(idx + 1).find(nw => nw.type === "text" && nw.ts !== undefined);
+    const nextTs = next ? next.ts : Infinity;
+    return currentTime >= w.ts && currentTime < nextTs;
+  });
 
   // Actualizar el tiempo actual cada 100ms
   useEffect(() => {
@@ -43,16 +44,16 @@ export default function App() {
         Tu navegador no soporta audio.
       </audio>
 
-      <div className="text-lg leading-relaxed">
+      <div className="text-lg leading-relaxed text-justify">
         {words.map((w, idx) => (
           <span
             key={idx}
-            onClick={() => seekTo(w.ts)}
-            className={`cursor-pointer ${
-              idx === activeWordIndex ? "bg-blue-600 text-white px-1 rounded" : ""
-            }`}
+            onClick={w.type === "text" ? () => seekTo(w.ts) : undefined}
+            className={`${
+              w.type === "text" ? "cursor-pointer" : ""
+            } ${idx === activeWordIndex ? "bg-yellow-200 text-black transition-colors duration-200 rounded px-1" : ""}`}
           >
-            {w.value + " "}
+            {w.value}
           </span>
         ))}
       </div>
