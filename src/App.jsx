@@ -51,7 +51,7 @@ export default function App() {
             onClick={w.type === "text" ? () => seekTo(w.ts) : undefined}
             className={`${
               w.type === "text" ? "cursor-pointer" : ""
-            } ${idx === activeWordIndex ? "bg-yellow-200 text-black transition-colors duration-200 rounded px-1" : ""}`}
+            } ${idx === activeWordIndex ? "underline underline-offset-4 decoration-orange-500 font-bold" : ""}`}
           >
             {w.value}
           </span>
