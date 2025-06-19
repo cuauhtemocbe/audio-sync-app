@@ -35,7 +35,7 @@ export default function App() {
   };
 
   return (
-    <div className="p-4 max-w-3xl mx-auto">
+    <div className="p-4 max-w-3xl mx-auto bg-gray-900 min-h-screen text-gray-100">
       <h1 className="text-2xl font-bold mb-4">🎧 Texto sincronizado con audio</h1>
 
       <audio ref={audioRef} controls className="w-full mb-4">
@@ -49,7 +49,7 @@ export default function App() {
             key={idx}
             onClick={() => seekTo(w.ts)}
             className={`cursor-pointer ${
-              idx === activeWordIndex ? "bg-blue-300 px-1 rounded" : ""
+              idx === activeWordIndex ? "bg-blue-600 text-white px-1 rounded" : ""
             }`}
           >
             {w.value + " "}
@@ -57,7 +57,7 @@ export default function App() {
         ))}
       </div>
 
-      <p className="mt-4 text-sm text-gray-500">
+      <p className="mt-4 text-sm text-gray-400">
         Tiempo actual: {currentTime.toFixed(2)} segundos
       </p>
     </div>
