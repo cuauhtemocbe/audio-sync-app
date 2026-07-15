@@ -83,6 +83,28 @@ Arrancar el servidor de dev (`make dev`) y probar la feature en el navegador man
 - El transcript (`aligned_transcript.json`) sigue el formato de salida de Rev.ai (`monologues[].elements[]`, cada elemento con `type`, `value`, `ts`).
 - **`node_modules/` NO está trackeado en git** (se destrackeó el 2026-07-15: estaba trackeado desde antes de que existiera el `.gitignore`, y provocó que `lint-staged` perdiera cambios sin commitear dos veces al tropezar con un archivo `root`-owned dentro del árbol — detalle completo en la memoria de Engram `node-modules-tracked-bug`). No volver a hacer `git add -f node_modules` ni sacarlo de `.gitignore`.
 
+### Design tokens (tema oscuro)
+
+Todos los colores están inline como clases de Tailwind en `src/App.jsx` (no hay tema custom en
+`tailwind.config.js`, que usa la paleta default de Tailwind sin `extend`). Tabla verificada contra el código real
+el 2026-07-15:
+
+| Token | Clase Tailwind | Hex | Uso |
+| --- | --- | --- | --- |
+| Fondo | `bg-gray-900` | `#111827` | Fondo de toda la app |
+| Texto base | `text-gray-100` | `#f3f4f6` | Título, palabras inactivas |
+| Acento activo (subrayado) | `decoration-orange-500` | `#f97316` | Subrayado de la palabra activa |
+| Acento activo (texto) | `text-orange-400` | `#fb923c` | Color de la palabra activa |
+| Texto secundario | `text-gray-400` | `#9ca3af` | Indicador de tiempo actual |
+
+**Por qué esta paleta y no una alternativa genérica**: un fondo claro con texto oscuro (el default más común de
+un scaffold nuevo) exige un color de acento con más contraste para destacar una sola palabra entre un párrafo
+largo sin recurrir a negrita o mayúsculas, que romperían la lectura fluida. El fondo oscuro (`gray-900` en vez de
+negro puro) evita el contraste extremo que cansa la vista en sesiones de lectura largas, y el acento naranja
+(`orange-400`/`500` en vez del azul/verde default de muchos frameworks) se distingue con claridad sobre gris
+oscuro sin necesitar saturación agresiva. Si en el futuro se "corrige" la paleta de vuelta a un tema claro
+default, se pierde este contraste pensado específicamente para resaltar una palabra a la vez.
+
 ---
 
 ## Docker y despliegue

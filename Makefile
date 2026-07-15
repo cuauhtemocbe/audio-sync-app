@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help dev up-d down test coverage build lint validate
+.PHONY: help dev up-d down test coverage build lint license-check validate
 
 help: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -26,5 +26,8 @@ build: ## Construye la imagen de producción
 lint: up-d ## Corre ESLint dentro de Docker
 	docker compose -f docker-compose.dev.yml exec -T audio-sync-app npm run lint
 
-validate: lint test build ## Corre la validación completa (lint + test + build), se detiene en el primer paso que falla
+license-check: ## Verifica que exista el archivo LICENSE
+	@test -f LICENSE
+
+validate: lint test build license-check ## Corre la validación completa (lint + test + build + license-check), se detiene en el primer paso que falla
 	@echo "validate OK"
