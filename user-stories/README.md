@@ -28,8 +28,12 @@ secret manager externo). Ver la columna **Descartado** en cada milestone cuando 
 | 5 | [Endurecimiento de Docker](./milestone-5-docker-hardening) | Healthcheck, usuario no-root y pinning por digest en la imagen de producción | 3 | ✅ Completado |
 | 6 | [Documentación y gobernanza](./milestone-6-documentation-governance) | `CHANGELOG.md`, `LICENSE` y tabla de design tokens con autocrítica | 3 | ✅ Completado |
 | 7 | [Accesibilidad](./milestone-7-accessibility) | Respetar `prefers-reduced-motion` en las animaciones de resaltado de palabra | 1 | 🟡 Implementado, falta verificación manual en navegador (issue #15 abierto) |
+| 8 | [Endurecimiento de Docker (parte 2)](./milestone-8-docker-hardening-part2) | Puerto vía variable de entorno (`PORT`, para Railway), healthcheck en `Dockerfile.dev`, auditar/reducir la imagen `nginx:alpine` de producción | 3 | ⬜ Abierto (issues #18-#20) |
+| 9 | [Configuración e higiene del repo](./milestone-9-configuracion-e-higiene) | `.env.example` versionado y `.codegraph/` en `.gitignore` | 2 | ⬜ Abierto (issues #21-#22) |
+| 10 | [Calidad de código (parte 2)](./milestone-10-calidad-de-codigo-parte2) | Cobertura mínima enforced, no solo reportada | 1 | ⬜ Abierto (issue #23) |
+| 11 | [Identidad visual (parte 2)](./milestone-11-identidad-visual-parte2) | Paleta derivada del dominio, ícono de marca propio, tipografía diferenciada por función | 3 | ⬜ Abierto (issues #24-#26) |
 
-**Total: 15 historias.**
+**Total: 24 historias** (15 de M1-M7 + 9 de M8-M11).
 
 ## Orden y dependencias
 
@@ -37,6 +41,11 @@ secret manager externo). Ver la columna **Descartado** en cada milestone cuando 
 - **M2** habilita `make validate` como comando único; **M3** depende de que el `Makefile` de M2 exista para
   cablear el script de validación ahí.
 - **M4**, **M5**, **M6** y **M7** son independientes entre sí y pueden intercalarse según disponibilidad.
+- **M8**, **M9**, **M10** y **M11** salen de una revisión del proyecto completo (2026-07-15) contra el estándar
+  de `/home/kuautli/Projects/README.md`, tras cerrar M4-M7. Son independientes entre sí; M8-01 (puerto vía
+  `PORT`) es la de mayor prioridad porque afecta el despliegue real en Railway (issue de seguimiento: ver
+  `specs/` si se llega a redactar spec+plan). M11-01 (paleta) conviene hacerla antes que M11-02/03 (ícono,
+  tipografía) porque las tres tocan `App.jsx`/`tailwind.config.js` y conviene minimizar rebases entre sí.
 
 ## Definition of Done (global, aplica a todas las historias)
 
