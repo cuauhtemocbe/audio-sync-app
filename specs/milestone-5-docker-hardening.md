@@ -93,6 +93,14 @@ Verificación funcional con Docker real (no hay unit tests de Dockerfile):
   este cambio, y fuera del alcance de este milestone (que es hardening estructural, no parcheo de CVEs de la
   imagen base). Pendiente de decisión del usuario si se abre un issue nuevo para actualizarlas.
 
+### Seguimiento: bump a node:22-alpine (2026-07-15)
+
+A pedido del usuario, el stage `builder` pasó de `node:20-alpine` a `node:22-alpine@sha256:16e22a...`. Rebuild,
+`make validate` y verificación HTTP/usuario no-root en verde. `trivy image` sigue reportando los mismos 30 CVEs
+(0 CRITICAL, 8 HIGH, 22 MEDIUM): son esperables sin cambios, porque el build es multi-stage y el stage `builder`
+se descarta — la imagen final es 100% `nginx:alpine`, que es donde están los paquetes vulnerables. Bumpear la
+versión de Node no puede resolver CVEs de la capa de runtime de nginx.
+
 ## Implementation Plan
 
 Ver [milestone-5-docker-hardening-plan.md](./milestone-5-docker-hardening-plan.md).
