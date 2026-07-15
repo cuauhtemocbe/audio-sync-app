@@ -1,35 +1,35 @@
 // src/App.jsx
-import { useEffect, useRef, useState } from "react";
-import transcript from "./aligned_transcript.json";
-import { getActiveWordIndex } from "./getActiveWordIndex";
+import { useEffect, useRef, useState } from 'react'
+import transcript from './aligned_transcript.json'
+import { getActiveWordIndex } from './getActiveWordIndex'
 
 export default function App() {
-  const audioRef = useRef(null);
-  const [currentTime, setCurrentTime] = useState(0);
+  const audioRef = useRef(null)
+  const [currentTime, setCurrentTime] = useState(0)
 
   // Obtener las palabras del transcript
-  const words = transcript.monologues.flatMap((mono) => mono.elements);
+  const words = transcript.monologues.flatMap((mono) => mono.elements)
 
   // Calcular la palabra activa (subrayado se mantiene hasta que la siguiente palabra comience)
-  const activeWordIndex = getActiveWordIndex(words, currentTime);
+  const activeWordIndex = getActiveWordIndex(words, currentTime)
 
   // Actualizar el tiempo actual cada 100ms
   useEffect(() => {
     const interval = setInterval(() => {
       if (audioRef.current) {
-        setCurrentTime(audioRef.current.currentTime);
+        setCurrentTime(audioRef.current.currentTime)
       }
-    }, 100);
-    return () => clearInterval(interval);
-  }, []);
+    }, 100)
+    return () => clearInterval(interval)
+  }, [])
 
   // Función para saltar a una palabra
   const seekTo = (time) => {
     if (audioRef.current) {
-      audioRef.current.currentTime = time;
-      audioRef.current.play();
+      audioRef.current.currentTime = time
+      audioRef.current.play()
     }
-  };
+  }
 
   return (
     <div className="p-4 max-w-3xl mx-auto bg-gray-900 min-h-screen text-gray-100">
@@ -44,23 +44,20 @@ export default function App() {
         {words.map((w, idx) => (
           <span
             key={idx}
-            onClick={w.type === "text" ? () => seekTo(w.ts) : undefined}
+            onClick={w.type === 'text' ? () => seekTo(w.ts) : undefined}
             className={`cursor-pointer underline underline-offset-4 transition-colors duration-150 ${
               idx === activeWordIndex
-                ? "decoration-orange-500 text-orange-400"
-                : "decoration-transparent text-gray-100"
+                ? 'decoration-orange-500 text-orange-400'
+                : 'decoration-transparent text-gray-100'
             }`}
-            style={{ textUnderlinePosition: "under" }}
+            style={{ textUnderlinePosition: 'under' }}
           >
             {w.value}
           </span>
         ))}
       </div>
 
-      <p className="mt-4 text-sm text-gray-400">
-        Tiempo actual: {currentTime.toFixed(2)} segundos
-      </p>
+      <p className="mt-4 text-sm text-gray-400">Tiempo actual: {currentTime.toFixed(2)} segundos</p>
     </div>
-  );
+  )
 }
-

@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+.codegraph
+src/aligned_transcript.json
+package-lock.json
+public

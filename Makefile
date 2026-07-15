@@ -23,8 +23,8 @@ coverage: up-d ## Genera el reporte de cobertura dentro de Docker (visible en ho
 build: ## Construye la imagen de producción
 	docker build -t audio-sync-app:prod .
 
-lint: ## Corre el linter (placeholder hasta milestone-3, US #5)
-	@echo "lint: pendiente de configurar ESLint (milestone-3, issue #5)"
+lint: up-d ## Corre ESLint dentro de Docker
+	docker compose -f docker-compose.dev.yml exec -T audio-sync-app npm run lint
 
-validate: test build ## Corre la validación completa (test + build; lint se suma en milestone-3)
-	@echo "validate OK (lint todavía no forma parte de esta cadena, ver milestone-3)"
+validate: lint test build ## Corre la validación completa (lint + test + build), se detiene en el primer paso que falla
+	@echo "validate OK"
