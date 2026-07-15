@@ -32,3 +32,9 @@ docker-compose.override.yml
 # Others
 coverage/
 *.tgz
+
+.claude/
+.mcp.json
+
+# Local audio assets (not part of the app, experiment data)
+public/immortality_2506_librivox.zip
