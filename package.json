@@ -8,7 +8,13 @@
         "preview": "vite preview",
         "test": "vitest run",
         "test:watch": "vitest",
-        "test:coverage": "vitest run --coverage"
+        "test:coverage": "vitest run --coverage",
+        "prepare": "husky || true"
+    },
+    "lint-staged": {
+        "*.{js,jsx}": [
+            "echo 'lint-staged: placeholder hasta milestone-3 (issue #5, ESLint) — no-op por ahora'"
+        ]
     },
     "dependencies": {
         "react": "^18.2.0",
@@ -20,7 +26,9 @@
         "@vitejs/plugin-react": "^4.1.0",
         "@vitest/coverage-v8": "^4.1.10",
         "autoprefixer": "^10.4.15",
+        "husky": "^9.1.7",
         "jsdom": "^29.1.1",
+        "lint-staged": "^17.0.8",
         "postcss": "^8.4.24",
         "tailwindcss": "^3.4.1",
         "vite": "^5.2.0",

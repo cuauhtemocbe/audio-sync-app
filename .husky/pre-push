@@ -1,0 +1,8 @@
+branch=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$branch" = "main" ]; then
+  echo "pre-push: rama '$branch' -> corriendo 'make validate'"
+  make validate
+else
+  echo "pre-push: rama '$branch' (no main) -> se omite 'make validate'"
+fi
