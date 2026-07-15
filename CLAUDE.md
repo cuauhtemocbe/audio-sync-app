@@ -17,7 +17,7 @@ Guía de instrucciones para Claude Code al trabajar en este repositorio.
 - Docker (`Dockerfile` para producción con nginx, `Dockerfile.dev` para desarrollo)
 - Despliegue vía Railway
 
-**Backlog**: hay un backlog de historias de usuario en `user-stories/` (7 milestones) que adopta de forma pragmática los lineamientos de `/home/kuautli/Projects/README.md` (estándar personal de buenas prácticas), publicado como GitHub Issues con milestones nativos. Milestones 1-3 (testing, Makefile/git hooks, lint) ya están implementados — ver `specs/milestone-{1,2,3}-*.md` para el spec+plan de cada uno. Milestones 4-7 (secret scanning, Docker hardening, CHANGELOG/LICENSE, accesibilidad) siguen abiertos como issues #7-#15.
+**Backlog**: hay un backlog de historias de usuario en `user-stories/` (7 milestones) que adopta de forma pragmática los lineamientos de `/home/kuautli/Projects/README.md` (estándar personal de buenas prácticas), publicado como GitHub Issues con milestones nativos. Milestones 1-6 (testing, Makefile/git hooks, lint, secret scanning, Docker hardening, CHANGELOG/LICENSE/design tokens) ya están implementados — ver `specs/milestone-{1..6}-*.md` para el spec+plan de cada uno. Milestone 7 (accesibilidad, `prefers-reduced-motion`) está implementado y testeado (issue #15), pero sigue abierto porque falta la verificación manual en navegador que pide el checklist de este archivo.
 
 ---
 

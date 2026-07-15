@@ -19,15 +19,15 @@ secret manager externo). Ver la columna **Descartado** en cada milestone cuando 
 
 ## Milestones
 
-| # | Milestone | Objetivo | Historias |
-| --- | --- | --- | --- |
-| 1 | [Red de seguridad de testing](./milestone-1-testing-safety-net) | Cubrir con tests automatizados el área de mayor riesgo (`activeWordIndex`), ya señalada como tal en `CLAUDE.md` | 2 |
-| 2 | [Flujo de trabajo del desarrollador](./milestone-2-developer-workflow) | `Makefile` como interfaz única + git hooks versionados y graduados por rama | 2 |
-| 3 | [Baseline de calidad de código](./milestone-3-code-quality-baseline) | Lint/format explícito + script de validación único reutilizable | 2 |
-| 4 | [Seguridad y secretos](./milestone-4-security-secrets) | Secret scanning en pre-commit + verificar que la config de SonarQube apunta al proyecto correcto | 2 |
-| 5 | [Endurecimiento de Docker](./milestone-5-docker-hardening) | Healthcheck, usuario no-root y pinning por digest en la imagen de producción | 3 |
-| 6 | [Documentación y gobernanza](./milestone-6-documentation-governance) | `CHANGELOG.md`, `LICENSE` y tabla de design tokens con autocrítica | 3 |
-| 7 | [Accesibilidad](./milestone-7-accessibility) | Respetar `prefers-reduced-motion` en las animaciones de resaltado de palabra | 1 |
+| # | Milestone | Objetivo | Historias | Estado |
+| --- | --- | --- | --- | --- |
+| 1 | [Red de seguridad de testing](./milestone-1-testing-safety-net) | Cubrir con tests automatizados el área de mayor riesgo (`activeWordIndex`), ya señalada como tal en `CLAUDE.md` | 2 | ✅ Completado |
+| 2 | [Flujo de trabajo del desarrollador](./milestone-2-developer-workflow) | `Makefile` como interfaz única + git hooks versionados y graduados por rama | 2 | ✅ Completado |
+| 3 | [Baseline de calidad de código](./milestone-3-code-quality-baseline) | Lint/format explícito + script de validación único reutilizable | 2 | ✅ Completado |
+| 4 | [Seguridad y secretos](./milestone-4-security-secrets) | Secret scanning en pre-commit + verificar que la config de SonarQube apunta al proyecto correcto | 2 | ✅ Completado |
+| 5 | [Endurecimiento de Docker](./milestone-5-docker-hardening) | Healthcheck, usuario no-root y pinning por digest en la imagen de producción | 3 | ✅ Completado |
+| 6 | [Documentación y gobernanza](./milestone-6-documentation-governance) | `CHANGELOG.md`, `LICENSE` y tabla de design tokens con autocrítica | 3 | ✅ Completado |
+| 7 | [Accesibilidad](./milestone-7-accessibility) | Respetar `prefers-reduced-motion` en las animaciones de resaltado de palabra | 1 | 🟡 Implementado, falta verificación manual en navegador (issue #15 abierto) |
 
 **Total: 15 historias.**
 
