@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useEffect, useRef, useState } from "react";
 import transcript from "./aligned_transcript.json";
+import { getActiveWordIndex } from "./getActiveWordIndex";
 
 export default function App() {
   const audioRef = useRef(null);
@@ -10,12 +11,7 @@ export default function App() {
   const words = transcript.monologues.flatMap((mono) => mono.elements);
 
   // Calcular la palabra activa (subrayado se mantiene hasta que la siguiente palabra comience)
-  const activeWordIndex = words.findIndex((w, idx) => {
-    if (w.type !== "text" || w.ts === undefined) return false;
-    const next = words.slice(idx + 1).find(nw => nw.type === "text" && nw.ts !== undefined);
-    const nextTs = next ? next.ts : Infinity;
-    return currentTime >= w.ts && currentTime < nextTs;
-  });
+  const activeWordIndex = getActiveWordIndex(words, currentTime);
 
   // Actualizar el tiempo actual cada 100ms
   useEffect(() => {
