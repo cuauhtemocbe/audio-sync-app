@@ -1,1 +1,2 @@
+docker run --rm -v "$(pwd):/repo" zricethezav/gitleaks:latest protect --source="/repo" --staged --redact -v
 npx lint-staged

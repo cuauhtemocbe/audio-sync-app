@@ -94,6 +94,24 @@ Arrancar el servidor de dev (`make dev`) y probar la feature en el navegador man
 
 ---
 
+## Seguridad y secretos
+
+- **Secret scanning en pre-commit**: `.husky/pre-commit` corre `gitleaks protect --staged` (vía la imagen oficial
+  `zricethezav/gitleaks`, sin instalar el binario en el host) antes de `lint-staged`. Es una segunda barrera —
+  `.mcp.json` y `.claude/` ya están gitignoreados y verificados, esto cubre el caso de un archivo que se
+  gitignoree mal. Verificado el 2026-07-15: `gitleaks detect` sobre todo el historial no encontró leaks, y un
+  token sintético estilo SonarQube (`squ_...`) fue detectado y bloqueado correctamente (regla
+  `sonar-api-token`). Si aparece un falso positivo real, se documenta en `.gitleaks.toml` (no existe hoy porque
+  no hizo falta).
+- **`SONARQUBE_PROJECT_KEY` en `.mcp.json` (`"audio-sync-app"`) NO corresponde a un proyecto real** — verificado
+  el 2026-07-15 contra el servidor (`get_project_quality_gate_status` devuelve 404, y
+  `search_my_sonarqube_projects` lista otros 4 proyectos, ninguno `audio-sync-app`). El key quedó copiado de una
+  plantilla de referencia y el proyecto nunca se creó en el servidor. **Pendiente**: crear el proyecto
+  `audio-sync-app` en la instancia de SonarQube (acción de administración fuera del alcance de este repo) antes
+  de confiar en `/sonar-check` o en cualquier tool de `mcp__sonarqube__*` para este proyecto.
+
+---
+
 ## Testing
 
 - **Vitest + jsdom** configurado en `vite.config.js` (sección `test`), con `@testing-library/react` y `@testing-library/jest-dom` disponibles para tests de componente futuros (hoy los tests son de la función pura, no de renderizado).
