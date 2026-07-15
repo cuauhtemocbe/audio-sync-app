@@ -2,10 +2,12 @@
 import { useEffect, useRef, useState } from 'react'
 import transcript from './aligned_transcript.json'
 import { getActiveWordIndex } from './getActiveWordIndex'
+import { usePrefersReducedMotion } from './usePrefersReducedMotion'
 
 export default function App() {
   const audioRef = useRef(null)
   const [currentTime, setCurrentTime] = useState(0)
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   // Obtener las palabras del transcript
   const words = transcript.monologues.flatMap((mono) => mono.elements)
@@ -45,7 +47,9 @@ export default function App() {
           <span
             key={idx}
             onClick={w.type === 'text' ? () => seekTo(w.ts) : undefined}
-            className={`cursor-pointer underline underline-offset-4 transition-colors duration-150 ${
+            className={`cursor-pointer underline underline-offset-4 ${
+              prefersReducedMotion ? '' : 'transition-colors duration-150'
+            } ${
               idx === activeWordIndex
                 ? 'decoration-orange-500 text-orange-400'
                 : 'decoration-transparent text-gray-100'

@@ -1,0 +1,80 @@
+---
+title: Milestone 7 — Accesibilidad
+status: in-progress
+created: 2026-07-15
+updated: 2026-07-15
+issue: "#15"
+---
+
+# Milestone 7 — Accesibilidad
+
+## Objective
+
+Hacer que la transición animada de resaltado de la palabra activa (`transition-colors duration-150` en
+`src/App.jsx`) respete `prefers-reduced-motion: reduce`, degradando a un cambio instantáneo sin animación
+cuando el usuario lo tiene activado, incluyendo cambios en caliente sin recargar la página.
+
+## Context
+
+Historia de origen: [user-stories/milestone-7-accessibility/01-prefers-reduced-motion.md](../user-stories/milestone-7-accessibility/01-prefers-reduced-motion.md)
+(issue #15). Independiente de M1-M6. Requisito de accesibilidad no opcional según el estándar de referencia del
+usuario para cualquier animación no trivial.
+
+## Requirements
+
+### Functional Requirements
+
+- [x] Sin `prefers-reduced-motion: reduce`, la transición de resaltado se anima como hoy (sin regresión visual;
+      verificado con test automatizado, pendiente confirmación visual del usuario en navegador).
+- [x] Con `prefers-reduced-motion: reduce` activado, el resaltado cambia instantáneamente, sin transición
+      (verificado con test automatizado, pendiente confirmación visual del usuario en navegador).
+- [x] Si el usuario cambia la preferencia del sistema mientras la app está abierta, las siguientes transiciones
+      respetan el nuevo valor sin necesidad de recargar la página (verificado con test automatizado).
+
+## Architecture
+
+### Components
+
+- `src/usePrefersReducedMotion.js` (nuevo) — hook que lee `window.matchMedia('(prefers-reduced-motion: reduce)')`,
+  se suscribe al evento `change` de la `MediaQueryList` para reaccionar en caliente, y expone un booleano.
+  Se elige un hook con `matchMedia` (en vez de la variante puramente CSS `motion-reduce:` de Tailwind) porque la
+  US pide explícitamente un test de Vitest+jsdom mockeando `matchMedia`; jsdom no evalúa media queries reales,
+  así que una solución solo-CSS no sería testeable con la suite actual.
+- `src/App.jsx` — usa el hook para condicionar la clase de transición del `<span>` de cada palabra
+  (`transition-colors duration-150` solo si `!prefersReducedMotion`).
+
+## User Stories
+
+- [#15 — Respetar prefers-reduced-motion en el resaltado de palabra](../user-stories/milestone-7-accessibility/01-prefers-reduced-motion.md)
+
+## Testing Strategy
+
+### Unit Tests
+`src/usePrefersReducedMotion.test.js` (colocado junto al hook, siguiendo la convención del proyecto) con
+`@testing-library/react`'s `renderHook`, mockeando `window.matchMedia` para los 3 escenarios Gherkin: valor
+inicial `false` (sin animación afectada), valor inicial `true` (sin transición), y disparo del evento `change`
+en caliente.
+
+### Manual / Browser
+Probado en navegador con la preferencia de movimiento reducido activada desde la configuración del SO, siguiendo
+el checklist de `CLAUDE.md` (golden path + casos borde de sincronización audio/texto no deben romperse).
+
+## Boundaries & Constraints
+
+### In Scope
+- Solo la transición de color/subrayado de la palabra activa en `App.jsx`.
+
+### Out of Scope
+- Otras animaciones futuras (si se agregan, deberán seguir el mismo patrón del hook, pero no existen hoy).
+
+## Success Criteria
+
+- [x] Los 3 escenarios Gherkin de la US #15 pasan a nivel de test automatizado (hook `usePrefersReducedMotion`,
+      3 tests con `matchMedia` mockeado). **Pendiente**: verificación visual manual en navegador con la
+      preferencia del SO activada — no se pudo hacer en esta sesión por no tener navegador disponible.
+- [x] Sin regresión en la sincronización audio/texto (`getActiveWordIndex` no se toca; suite completa de 12
+      tests en verde).
+
+## Implementation Plan
+
+Ver [milestone-7-accessibility-plan.md](./milestone-7-accessibility-plan.md).
