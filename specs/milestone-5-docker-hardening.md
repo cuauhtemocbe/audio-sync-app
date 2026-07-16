@@ -101,6 +101,16 @@ A pedido del usuario, el stage `builder` pasó de `node:20-alpine` a `node:22-al
 se descarta — la imagen final es 100% `nginx:alpine`, que es donde están los paquetes vulnerables. Bumpear la
 versión de Node no puede resolver CVEs de la capa de runtime de nginx.
 
+### Seguimiento: issue #17 resuelto vía milestone 8 (2026-07-15)
+
+El issue #17 (CVEs de c-ares/curl/libexpat documentadas arriba) se resolvió como parte de
+[milestone-8-docker-hardening-part2.md](./milestone-8-docker-hardening-part2.md) (#20), no bumpeando el digest
+pineado (Alpine todavía no publicó los paquetes parcheados) sino removiendo `curl` y el módulo
+`nginx-module-image-filter` (no usado en runtime — nginx no enlaza contra `libcurl` y `nginx.conf` no carga
+`image_filter`) del stage final. `apk del curl nginx-module-image-filter` purga sus dependencias huérfanas
+(incluye `c-ares`, `libcurl` y `libexpat`, las tres familias de CVEs del baseline). `trivy image` sobre la
+imagen reconstruida pasó de 8 CVEs HIGH a 0. Issue cerrado como resuelto.
+
 ## Implementation Plan
 
 Ver [milestone-5-docker-hardening-plan.md](./milestone-5-docker-hardening-plan.md).

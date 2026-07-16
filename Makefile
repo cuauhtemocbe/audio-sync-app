@@ -8,8 +8,8 @@ help: ## Muestra esta ayuda
 dev: ## Levanta el entorno de desarrollo en Docker (foreground, puerto 5173)
 	docker compose -f docker-compose.dev.yml up --build
 
-up-d: ## Levanta el entorno de desarrollo en Docker (background)
-	docker compose -f docker-compose.dev.yml up -d --build
+up-d: ## Levanta el entorno de desarrollo en Docker (background, espera a que esté healthy)
+	docker compose -f docker-compose.dev.yml up -d --build --wait
 
 down: ## Detiene el entorno de desarrollo
 	docker compose -f docker-compose.dev.yml down
