@@ -17,7 +17,7 @@ Guía de instrucciones para Claude Code al trabajar en este repositorio.
 - Docker (`Dockerfile` para producción con nginx, `Dockerfile.dev` para desarrollo)
 - Despliegue vía Railway
 
-**Backlog**: hay un backlog de historias de usuario en `user-stories/` (11 milestones) que adopta de forma pragmática los lineamientos de `/home/kuautli/Projects/README.md` (estándar personal de buenas prácticas), publicado como GitHub Issues con milestones nativos. Milestones 1-3, 5-8 ya están implementados y cerrados — ver `specs/milestone-{1..8}-*.md` para el spec+plan de cada uno. Milestone 4 (seguridad y secretos) está implementado salvo la issue #16 (crear el proyecto en el servidor de SonarQube, acción de administración fuera del alcance del repo). Milestones 9-11 (higiene del repo, cobertura enforced, identidad visual — paleta/ícono/tipografía VU-meter) se implementaron el 2026-07-15 — ver `specs/milestone-{9..11}-*.md`.
+**Backlog**: el proyecto tuvo un backlog de historias de usuario (11 milestones) que adoptó de forma pragmática los lineamientos de `/home/kuautli/Projects/README.md` (estándar personal de buenas prácticas), publicado como GitHub Issues con milestones nativos. **Los 11 milestones (26 issues) están implementados y cerrados en GitHub a 2026-07-16** — ver `specs/milestone-{1..11}-*.md` para el spec+plan de cada uno. La carpeta `user-stories/` (borrador previo a la publicación en GitHub Issues) se eliminó del repo el 2026-07-16 una vez que el backlog quedó completo — GitHub Issues es la fuente de verdad, no hace falta duplicarla en el repo. La issue #16 (crear el proyecto `audio-sync-app` en el servidor de SonarQube) se resolvió corriendo el scanner manualmente, que auto-creó el proyecto en la instancia Community Edition — ver la sección de Seguridad más abajo. La única historia descartada (no implementada a propósito) es la #21 (`.env.example`), cerrada como won't-do por decisión del usuario.
 
 ---
 
@@ -41,7 +41,7 @@ Para un bugfix o feature chica del día a día, este proyecto **no** exige spec-
 
 1. Implementar el cambio directamente (feature o fix).
 2. Correr `make validate` (o dejar que los git hooks lo hagan, ver abajo) — lint + test + build.
-3. Probar manualmente en el navegador (`make dev`, puerto 5173) que el audio sincroniza bien con el resaltado de palabras — los tests cubren `getActiveWordIndex` pero no reemplazan la prueba visual.
+3. Probar manualmente en el navegador (ver "Antes de dar por terminado un cambio de UI" más abajo).
 4. Si el cambio toca dependencias o Dockerfiles, correr `/trivy-scan`.
 5. Commitear con `/commit-writer` (el pre-commit de Husky corre lint sobre los archivos staged automáticamente).
 6. Si aplica, deployar con la skill `use-railway`.
@@ -132,8 +132,8 @@ usos, sin decoración adicional en el resto de la UI.
 
 - `docker-compose.dev.yml` levanta el entorno de desarrollo con hot reload en el puerto `5173`.
 - `docker-compose.prod.yml` sirve el build de producción vía nginx en el puerto `8080`.
-- Si se modifican Dockerfiles o dependencias, correr `/trivy-scan` para detectar vulnerabilidades o secretos antes de commitear.
-- Para deploy, provisioning o variables de entorno en Railway, usar la skill `use-railway`.
+
+(Cuándo correr `/trivy-scan` y cuándo usar la skill `use-railway` está en "Flujo de trabajo recomendado" — no repetido acá.)
 
 ---
 
@@ -146,12 +146,14 @@ usos, sin decoración adicional en el resto de la UI.
   token sintético estilo SonarQube (`squ_...`) fue detectado y bloqueado correctamente (regla
   `sonar-api-token`). Si aparece un falso positivo real, se documenta en `.gitleaks.toml` (no existe hoy porque
   no hizo falta).
-- **`SONARQUBE_PROJECT_KEY` en `.mcp.json` (`"audio-sync-app"`) NO corresponde a un proyecto real** — verificado
-  el 2026-07-15 contra el servidor (`get_project_quality_gate_status` devuelve 404, y
-  `search_my_sonarqube_projects` lista otros 4 proyectos, ninguno `audio-sync-app`). El key quedó copiado de una
-  plantilla de referencia y el proyecto nunca se creó en el servidor. **Pendiente**: crear el proyecto
-  `audio-sync-app` en la instancia de SonarQube (acción de administración fuera del alcance de este repo) antes
-  de confiar en `/sonar-check` o en cualquier tool de `mcp__sonarqube__*` para este proyecto.
+- **`SONARQUBE_PROJECT_KEY` en `.mcp.json` (`"audio-sync-app"`) ya corresponde a un proyecto real** — la
+  discrepancia original (verificada el 2026-07-15: `get_project_quality_gate_status` devolvía 404, y
+  `search_my_sonarqube_projects` listaba otros 4 proyectos, ninguno `audio-sync-app`, porque el key había
+  quedado copiado de una plantilla de referencia) se resolvió el mismo día corriendo el scanner de Sonar
+  manualmente (issue #16, cerrada), que auto-creó el proyecto `audio-sync-app` en la instancia Community
+  Edition. Primer scan: Quality Gate PASSED, 0 vulnerabilidades, 5 issues menores encontradas y corregidas ese
+  mismo día (ver detalle en la memoria de Engram `sonarqube-first-scan-2026-07-15`). `/sonar-check` y las tools
+  `mcp__sonarqube__*` ya se pueden usar con confianza para este proyecto.
 
 ---
 
@@ -159,7 +161,7 @@ usos, sin decoración adicional en el resto de la UI.
 
 - **Vitest + jsdom** configurado en `vite.config.js` (sección `test`), con `@testing-library/react` y `@testing-library/jest-dom` disponibles para tests de componente futuros (hoy los tests son de la función pura, no de renderizado).
 - **Correr los tests**: `make test` (dentro de Docker, levanta el servicio si hace falta) o `npm test` en local. Cobertura con `make coverage` / `npm run test:coverage` — el reporte queda en `coverage/` (ya montado en `docker-compose.dev.yml`, visible en el host sin copiar).
-- **Cobertura actual**: `src/getActiveWordIndex.js` (la lógica de sincronización, el área de mayor riesgo de bugs sutiles — off-by-one en timestamps, palabras sin `ts`, seek, fin de audio) tiene 9 tests cubriendo los casos ZOMBIES. El resto de `App.jsx` (rendering, efectos) no tiene tests todavía.
+- **Cobertura actual**: `src/getActiveWordIndex.js` (la lógica de sincronización, el área de mayor riesgo de bugs sutiles — off-by-one en timestamps, palabras sin `ts`, seek, fin de audio) tiene 7 tests cubriendo los casos ZOMBIES. `src/usePrefersReducedMotion.js` tiene 3 tests (valor inicial, preferencia activada, reacción en caliente a cambios del sistema). El resto de `App.jsx` (rendering, efectos) no tiene tests todavía.
 - Al agregar tests nuevos, usar la skill `/testing` para la estrategia y seguir la convención de tests colocados junto al archivo (`Componente.jsx` + `Componente.test.jsx`).
 - No agregar un framework de testing pesado ni mutation testing para un proyecto de este tamaño salvo que el usuario lo pida explícitamente.
 
@@ -179,4 +181,4 @@ Al iniciar sesión o tras una compactación, llamar `mem_context` para recuperar
 
 ## Adaptar este archivo
 
-El proyecto ya creció una vez (2026-07-15: se agregaron tests, lint, Makefile, git hooks y un backlog en GitHub Issues) y este archivo se actualizó para reflejarlo. Si vuelve a crecer (se agrega backend, más milestones del backlog, un flujo de trabajo distinto), actualizar este `CLAUDE.md` de nuevo. Evitar imponer proceso adicional (arquitectura por capas, CI hosteado, cobertura diferenciada por capa) que no aporta valor al tamaño actual — ver `user-stories/README.md` para el detalle de qué se descartó del checklist de buenas prácticas y por qué.
+El proyecto ya creció una vez (2026-07-15: se agregaron tests, lint, Makefile, git hooks y un backlog en GitHub Issues) y este archivo se actualizó para reflejarlo. Si vuelve a crecer (se agrega backend, más milestones del backlog, un flujo de trabajo distinto), actualizar este `CLAUDE.md` de nuevo. Evitar imponer proceso adicional (arquitectura por capas, CI hosteado, cobertura diferenciada por capa, secret manager externo) que no aporta valor al tamaño actual — se descartaron explícitamente del checklist de `/home/kuautli/Projects/README.md` porque el propio repo solo tiene un mantenedor, sin CI hosteado ni equipo revisando PRs en paralelo (detalle histórico de esa decisión, incluyendo la nota sobre Dependabot, en el historial de git de `user-stories/README.md` antes de que se eliminara la carpeta el 2026-07-16).
