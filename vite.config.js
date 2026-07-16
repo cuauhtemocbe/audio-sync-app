@@ -8,7 +8,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.js'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text', 'html', 'lcov'],
       reportsDirectory: './coverage',
       thresholds: {
         statements: 85,
