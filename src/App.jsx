@@ -34,15 +34,31 @@ export default function App() {
   }
 
   return (
-    <div className="p-4 max-w-3xl mx-auto bg-gray-900 min-h-screen text-gray-100">
-      <h1 className="text-2xl font-bold mb-4">🎧 Texto sincronizado con audio</h1>
+    <div className="p-4 max-w-3xl mx-auto bg-vu-housing min-h-screen text-vu-scale">
+      <h1 className="flex items-center gap-2 text-2xl font-bold font-display mb-4">
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 32 32"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <rect x="3" y="16" width="4" height="9" rx="1.5" className="fill-vu-scale" />
+          <rect x="10" y="9" width="4" height="16" rx="1.5" className="fill-vu-scale" />
+          <rect x="17" y="3" width="4" height="22" rx="1.5" className="fill-vu-peak" />
+          <rect x="24" y="12" width="4" height="13" rx="1.5" className="fill-vu-scale" />
+          <line x1="17" y1="28" x2="21" y2="28" strokeWidth="2" strokeLinecap="round" className="stroke-vu-peak" />
+        </svg>
+        Texto sincronizado con audio
+      </h1>
 
       <audio ref={audioRef} controls className="w-full mb-4">
         <source src="/daily_job.mp3" type="audio/mp3" />
         Tu navegador no soporta audio.
       </audio>
 
-      <div className="text-lg leading-relaxed text-justify">
+      <div className="font-body text-lg leading-relaxed text-justify">
         {words.map((w, idx) => (
           <span
             key={idx}
@@ -51,8 +67,8 @@ export default function App() {
               prefersReducedMotion ? '' : 'transition-colors duration-150'
             } ${
               idx === activeWordIndex
-                ? 'decoration-orange-500 text-orange-400'
-                : 'decoration-transparent text-gray-100'
+                ? 'decoration-vu-peak text-vu-peak'
+                : 'decoration-transparent text-vu-scale'
             }`}
             style={{ textUnderlinePosition: 'under' }}
           >
@@ -61,7 +77,7 @@ export default function App() {
         ))}
       </div>
 
-      <p className="mt-4 text-sm text-gray-400">Tiempo actual: {currentTime.toFixed(2)} segundos</p>
+      <p className="font-mono mt-4 text-sm text-vu-dial">Tiempo actual: {currentTime.toFixed(2)} segundos</p>
     </div>
   )
 }

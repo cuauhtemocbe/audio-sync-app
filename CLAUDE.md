@@ -17,7 +17,7 @@ Guía de instrucciones para Claude Code al trabajar en este repositorio.
 - Docker (`Dockerfile` para producción con nginx, `Dockerfile.dev` para desarrollo)
 - Despliegue vía Railway
 
-**Backlog**: hay un backlog de historias de usuario en `user-stories/` (7 milestones) que adopta de forma pragmática los lineamientos de `/home/kuautli/Projects/README.md` (estándar personal de buenas prácticas), publicado como GitHub Issues con milestones nativos. Milestones 1-6 (testing, Makefile/git hooks, lint, secret scanning, Docker hardening, CHANGELOG/LICENSE/design tokens) ya están implementados — ver `specs/milestone-{1..6}-*.md` para el spec+plan de cada uno. Milestone 7 (accesibilidad, `prefers-reduced-motion`) está implementado y testeado (issue #15), pero sigue abierto porque falta la verificación manual en navegador que pide el checklist de este archivo.
+**Backlog**: hay un backlog de historias de usuario en `user-stories/` (11 milestones) que adopta de forma pragmática los lineamientos de `/home/kuautli/Projects/README.md` (estándar personal de buenas prácticas), publicado como GitHub Issues con milestones nativos. Milestones 1-3, 5-8 ya están implementados y cerrados — ver `specs/milestone-{1..8}-*.md` para el spec+plan de cada uno. Milestone 4 (seguridad y secretos) está implementado salvo la issue #16 (crear el proyecto en el servidor de SonarQube, acción de administración fuera del alcance del repo). Milestones 9-11 (higiene del repo, cobertura enforced, identidad visual — paleta/ícono/tipografía VU-meter) se implementaron el 2026-07-15 — ver `specs/milestone-{9..11}-*.md`.
 
 ---
 
@@ -83,27 +83,48 @@ Arrancar el servidor de dev (`make dev`) y probar la feature en el navegador man
 - El transcript (`aligned_transcript.json`) sigue el formato de salida de Rev.ai (`monologues[].elements[]`, cada elemento con `type`, `value`, `ts`).
 - **`node_modules/` NO está trackeado en git** (se destrackeó el 2026-07-15: estaba trackeado desde antes de que existiera el `.gitignore`, y provocó que `lint-staged` perdiera cambios sin commitear dos veces al tropezar con un archivo `root`-owned dentro del árbol — detalle completo en la memoria de Engram `node-modules-tracked-bug`). No volver a hacer `git add -f node_modules` ni sacarlo de `.gitignore`.
 
-### Design tokens (tema oscuro)
+### Design tokens (paleta VU-meter)
 
-Todos los colores están inline como clases de Tailwind en `src/App.jsx` (no hay tema custom en
-`tailwind.config.js`, que usa la paleta default de Tailwind sin `extend`). Tabla verificada contra el código real
-el 2026-07-15:
+Desde milestone-11 (issue #24), la paleta está definida como tema custom en `tailwind.config.js`
+(`theme.extend.colors.vu`), no como clases default de Tailwind. Tabla verificada contra el código real el
+2026-07-15:
 
 | Token | Clase Tailwind | Hex | Uso |
 | --- | --- | --- | --- |
-| Fondo | `bg-gray-900` | `#111827` | Fondo de toda la app |
-| Texto base | `text-gray-100` | `#f3f4f6` | Título, palabras inactivas |
-| Acento activo (subrayado) | `decoration-orange-500` | `#f97316` | Subrayado de la palabra activa |
-| Acento activo (texto) | `text-orange-400` | `#fb923c` | Color de la palabra activa |
-| Texto secundario | `text-gray-400` | `#9ca3af` | Indicador de tiempo actual |
+| Fondo | `bg-vu-housing` | `#0d1410` | Fondo de toda la app |
+| Texto base | `text-vu-scale` | `#d7e4d8` | Título, palabras inactivas |
+| Acento activo (subrayado) | `decoration-vu-peak` | `#ff5a36` | Subrayado de la palabra activa |
+| Acento activo (texto) | `text-vu-peak` | `#ff5a36` | Color de la palabra activa |
+| Texto secundario | `text-vu-dial` | `#8fa190` | Indicador de tiempo actual |
 
-**Por qué esta paleta y no una alternativa genérica**: un fondo claro con texto oscuro (el default más común de
-un scaffold nuevo) exige un color de acento con más contraste para destacar una sola palabra entre un párrafo
-largo sin recurrir a negrita o mayúsculas, que romperían la lectura fluida. El fondo oscuro (`gray-900` en vez de
-negro puro) evita el contraste extremo que cansa la vista en sesiones de lectura largas, y el acento naranja
-(`orange-400`/`500` en vez del azul/verde default de muchos frameworks) se distingue con claridad sobre gris
-oscuro sin necesitar saturación agresiva. Si en el futuro se "corrige" la paleta de vuelta a un tema claro
-default, se pierde este contraste pensado específicamente para resaltar una palabra a la vez.
+**Por qué esta paleta y no una alternativa genérica**: el concepto de diseño es el **VU-meter** — el medidor de
+nivel analógico usado en producción de radio/podcast para monitorear voz grabada, el dominio literal de esta
+app (audio hablado + transcripción sincronizada). El estado de reposo (nada resaltado) es la zona segura del
+medidor (`vu-housing`/`vu-scale`); la palabra activa es la aguja llegando al pico (`vu-peak`, la zona roja). Se
+descartaron dos paletas genéricas antes de llegar a esta: (1) *cream + serif + terracota* — fondo claro,
+contradice la razón ya documentada de mantener un tema oscuro para sesiones de lectura largas; (2) *casi-negro +
+acento neón único* (verde ácido u otro) — aunque es oscuro, es el cliché de "modo terminal/hacker", sin ninguna
+relación específica con audio: el mismo acento serviría para cualquier IDE o dashboard. La paleta VU-meter, en
+cambio, es una decisión de producto trazable a un artefacto real del dominio, no un ajuste cosmético aislado.
+
+### Tipografía por función
+
+Desde milestone-11 (issue #26), `tailwind.config.js` define `theme.extend.fontFamily` con tres roles, cargados
+vía `@import` de Google Fonts en `src/index.css`:
+
+| Rol | Clase Tailwind | Familia | Uso |
+| --- | --- | --- | --- |
+| Display | `font-display` | Space Grotesk (600/700) | `<h1>` únicamente |
+| Body | `font-body` | Inter | Palabras del transcript |
+| Mono | `font-mono` | IBM Plex Mono | Indicador de tiempo (dígitos de ancho fijo, no "saltan" al actualizarse 10x/seg) |
+
+### Ícono de marca
+
+Desde milestone-11 (issue #25), `public/favicon.svg` es un ícono propio (ya no el SVG de stock de svgrepo.com):
+cuatro barras verticales tipo ecualizador/waveform, la de mayor altura (posición de "pico") en `vu-peak` con un
+trazo horizontal corto debajo — el mismo lenguaje visual del subrayado de la palabra activa en la UI. El mismo
+ícono se reutiliza inline en el `<h1>` de `src/App.jsx` (reemplaza el emoji 🎧 anterior) — un solo asset, dos
+usos, sin decoración adicional en el resto de la UI.
 
 ---
 

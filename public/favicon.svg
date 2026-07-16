@@ -1,7 +1,8 @@
-<?xml version="1.0" encoding="utf-8"?><!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-<svg width="800px" height="800px" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M13 9H27V5H13V9ZM27 1V5H13H7V9C7 9 3 9 3 5C3 1 7 1 7 1H27Z" fill="#668077"/>
-<path d="M13 9V17L10 15L7 17V9V5H13V9Z" fill="#FFE6EA"/>
-<path fill-rule="evenodd" clip-rule="evenodd" d="M29 10V30C29 30 29 31 28 31H4C4 31 3 31 3 30V5C3 9 7 9 7 9V17L10 15L13 17V9H27H28C28 9 29 9 29 10Z" fill="#FFC44D"/>
-<path d="M13 9H28C28 9 29 9 29 10V30C29 30 29 31 28 31H4C4 31 3 31 3 30V5M3 5C3 1 7 1 7 1H29M3 5C3 9 7 9 7 9M7 5V17L10 15L13 17V5H27" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<?xml version="1.0" encoding="utf-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="3" y="16" width="4" height="9" rx="1.5" fill="#d7e4d8" />
+  <rect x="10" y="9" width="4" height="16" rx="1.5" fill="#d7e4d8" />
+  <rect x="17" y="3" width="4" height="22" rx="1.5" fill="#ff5a36" />
+  <rect x="24" y="12" width="4" height="13" rx="1.5" fill="#d7e4d8" />
+  <line x1="17" y1="28" x2="21" y2="28" stroke="#ff5a36" stroke-width="2" stroke-linecap="round" />
 </svg>
