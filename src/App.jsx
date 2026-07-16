@@ -9,8 +9,12 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(0)
   const prefersReducedMotion = usePrefersReducedMotion()
 
-  // Obtener las palabras del transcript
-  const words = transcript.monologues.flatMap((mono) => mono.elements)
+  // Obtener las palabras del transcript, con un id estable asignado una sola vez
+  // (no el índice de posición en cada render) para que la key de React no dependa
+  // del orden de iteración.
+  const words = transcript.monologues
+    .flatMap((mono) => mono.elements)
+    .map((w, i) => ({ ...w, id: i }))
 
   // Calcular la palabra activa (subrayado se mantiene hasta que la siguiente palabra comience)
   const activeWordIndex = getActiveWordIndex(words, currentTime)
@@ -55,26 +59,42 @@ export default function App() {
 
       <audio ref={audioRef} controls className="w-full mb-4">
         <source src="/daily_job.mp3" type="audio/mp3" />
+        <track kind="captions" src="/captions.vtt" srcLang="en" label="English" default />
         Tu navegador no soporta audio.
       </audio>
 
       <div className="font-body text-lg leading-relaxed text-justify">
-        {words.map((w, idx) => (
-          <span
-            key={idx}
-            onClick={w.type === 'text' ? () => seekTo(w.ts) : undefined}
-            className={`cursor-pointer underline underline-offset-4 ${
-              prefersReducedMotion ? '' : 'transition-colors duration-150'
-            } ${
-              idx === activeWordIndex
-                ? 'decoration-vu-peak text-vu-peak'
-                : 'decoration-transparent text-vu-scale'
-            }`}
-            style={{ textUnderlinePosition: 'under' }}
-          >
-            {w.value}
-          </span>
-        ))}
+        {words.map((w, idx) => {
+          const isClickable = w.type === 'text'
+          return (
+            <span
+              key={w.id}
+              onClick={isClickable ? () => seekTo(w.ts) : undefined}
+              onKeyDown={
+                isClickable
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        seekTo(w.ts)
+                      }
+                    }
+                  : undefined
+              }
+              role={isClickable ? 'button' : undefined}
+              tabIndex={isClickable ? 0 : undefined}
+              className={`cursor-pointer underline underline-offset-4 ${
+                prefersReducedMotion ? '' : 'transition-colors duration-150'
+              } ${
+                idx === activeWordIndex
+                  ? 'decoration-vu-peak text-vu-peak'
+                  : 'decoration-transparent text-vu-scale'
+              }`}
+              style={{ textUnderlinePosition: 'under' }}
+            >
+              {w.value}
+            </span>
+          )
+        })}
       </div>
 
       <p className="font-mono mt-4 text-sm text-vu-dial">Tiempo actual: {currentTime.toFixed(2)} segundos</p>
