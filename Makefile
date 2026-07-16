@@ -29,5 +29,5 @@ lint: up-d ## Corre ESLint dentro de Docker
 license-check: ## Verifica que exista el archivo LICENSE
 	@test -f LICENSE
 
-validate: lint test build license-check ## Corre la validación completa (lint + test + build + license-check), se detiene en el primer paso que falla
+validate: lint coverage build license-check ## Corre la validación completa (lint + coverage + build + license-check), se detiene en el primer paso que falla
 	@echo "validate OK"
