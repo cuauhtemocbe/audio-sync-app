@@ -4,11 +4,11 @@ const QUERY = '(prefers-reduced-motion: reduce)'
 
 export function usePrefersReducedMotion() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(
-    () => window.matchMedia(QUERY).matches
+    () => globalThis.matchMedia(QUERY).matches
   )
 
   useEffect(() => {
-    const mediaQueryList = window.matchMedia(QUERY)
+    const mediaQueryList = globalThis.matchMedia(QUERY)
     const handleChange = (event) => setPrefersReducedMotion(event.matches)
 
     mediaQueryList.addEventListener('change', handleChange)
