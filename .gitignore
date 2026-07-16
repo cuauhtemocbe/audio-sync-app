@@ -35,6 +35,7 @@ coverage/
 
 .claude/
 .mcp.json
+.codegraph/
 
 # Local audio assets (not part of the app, experiment data)
 public/immortality_2506_librivox.zip
