@@ -26,6 +26,12 @@ RUN chown -R nginx:nginx /var/cache/nginx /usr/share/nginx/html /etc/nginx/conf.
 # arrastraban (ver issue #17). wget queda intacto para el HEALTHCHECK.
 RUN apk del curl nginx-module-image-filter
 
+# worker_processes auto detecta los cores del host, no la cuota de CPU del contenedor (Railway: 1 vCPU) —
+# en ese entorno "auto" resolvía a ~78 workers, y el fork de todos ellos tardaba lo suficiente como para
+# que el healthcheck de arranque matara el proceso (SIGQUIT) antes de que nginx llegara a aceptar
+# conexiones: el contenedor quedaba "corriendo" en Railway pero rechazando toda conexión (502).
+RUN sed -i 's/worker_processes  auto;/worker_processes 1;/' /etc/nginx/nginx.conf
+
 USER nginx
 
 ENV PORT=8080
