@@ -15,8 +15,14 @@ COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
 # La imagen ya trae un usuario "nginx" (uid 101) sin privilegios; solo falta darle
 # permiso de escritura donde nginx necesita escribir en runtime y escuchar en un
-# puerto no privilegiado (>1024) para no requerir root.
-RUN chown -R nginx:nginx /var/cache/nginx /usr/share/nginx/html /etc/nginx/conf.d && \
+# puerto no privilegiado (>1024) para no requerir root. chown en /run (no solo en
+# nginx.pid) es necesario porque unlink() de un archivo requiere permiso de escritura
+# sobre el directorio que lo contiene, no sobre el archivo — sin esto, nginx tira
+# "unlink() /run/nginx.pid failed (13: Permission denied)" en cada shutdown/reload.
+# Ojo: se usa /run y no /var/run — el chown de BusyBox (Alpine) no sigue symlinks para
+# el último componente del path, así que "chown /var/run" solo re-dueña el symlink en
+# sí (/var/run -> /run), dejando el directorio real /run intacto como root:root.
+RUN chown -R nginx:nginx /var/cache/nginx /usr/share/nginx/html /etc/nginx/conf.d /run && \
     touch /var/run/nginx.pid && \
     chown nginx:nginx /var/run/nginx.pid
 
@@ -30,7 +36,12 @@ RUN apk del curl nginx-module-image-filter
 # en ese entorno "auto" resolvía a ~78 workers, y el fork de todos ellos tardaba lo suficiente como para
 # que el healthcheck de arranque matara el proceso (SIGQUIT) antes de que nginx llegara a aceptar
 # conexiones: el contenedor quedaba "corriendo" en Railway pero rechazando toda conexión (502).
-RUN sed -i 's/worker_processes  auto;/worker_processes 1;/' /etc/nginx/nginx.conf
+# La directiva "user nginx;" del nginx.conf base se quita porque ya corremos como USER nginx (no root):
+# con root ya cedido, esa línea no hace nada salvo tirar un warning en cada arranque.
+RUN sed -i \
+    -e 's/worker_processes  auto;/worker_processes 1;/' \
+    -e '/^user  nginx;/d' \
+    /etc/nginx/nginx.conf
 
 USER nginx
 
