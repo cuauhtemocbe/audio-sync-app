@@ -57,8 +57,14 @@ Todos los comandos de desarrollo pasan por `make` (correr `make` sin argumentos 
 | `make test` | Corre la suite de Vitest dentro de Docker (levanta el servicio si hace falta) |
 | `make coverage` | Genera el reporte de cobertura en `coverage/` |
 | `make lint` | Corre ESLint dentro de Docker |
+| `make lock-check` | Verifica que `pnpm-lock.yaml` esté sincronizado con `package.json` (`pnpm install --frozen-lockfile`) |
+| `make license-check` | Verifica que exista el archivo `LICENSE` |
 | `make build` | Construye la imagen de producción |
-| `make validate` | Corre `lint → test → build` en orden, se detiene en el primer paso que falla |
+| `make validate` | Corre `lock-check → lint → coverage → build → license-check` en orden, se detiene en el primer paso que falla |
+
+CI (`.github/workflows/ci.yml`) corre cada uno de estos targets como job independiente y paralelo sobre
+PRs/pushes a `main` — no duplica la lógica, solo invoca `make <target>` (ver "Adaptar este archivo" para
+el porqué de tener CI hosteada ahora).
 
 ### Git hooks (Husky)
 
@@ -161,13 +167,13 @@ usos, sin decoración adicional en el resto de la UI.
   Edition. Primer scan: Quality Gate PASSED, 0 vulnerabilidades, 5 issues menores encontradas y corregidas ese
   mismo día (ver detalle en la memoria de Engram `sonarqube-first-scan-2026-07-15`). `/sonar-check` y las tools
   `mcp__sonarqube__*` ya se pueden usar con confianza para este proyecto.
-- **CI hosteada (GitHub Actions) desde 2026-07-18, solo para PRs de Dependabot** (issue #38):
-  `.github/workflows/dependabot-socket-firewall.yml` corre `sfw pnpm install` (Socket Firewall Free,
-  [SocketDev/action](https://github.com/SocketDev/action) en modo `firewall-free`) sobre cada PR que abre
-  `dependabot[bot]` hacia `main`, y lo cierra automáticamente con un comentario si el firewall bloquea una
-  dependencia maliciosa/comprometida. Es una excepción puntual a la decisión de "sin CI hosteado" de la sección
-  "Adaptar este archivo" — el motivo es específico (validar automáticamente PRs de un bot antes de revisión
-  humana, no reemplazar el flujo de validación local para PRs de un colaborador), no una reversión general.
+- **CI hosteada (GitHub Actions) desde 2026-07-18** (issue #38 + decisión de generalizarla el mismo
+  día, ver "Adaptar este archivo"): `.github/workflows/dependabot-socket-firewall.yml` corre `sfw pnpm
+  install` (Socket Firewall Free, [SocketDev/action](https://github.com/SocketDev/action) en modo
+  `firewall-free`) sobre cada PR que abre `dependabot[bot]` hacia `main`, y lo cierra automáticamente
+  con un comentario si el firewall bloquea una dependencia maliciosa/comprometida. Esto sigue siendo
+  específico a Dependabot (ningún otro workflow hace este chequeo); la CI general de lint/test/build
+  para todos los PRs vive aparte, en `.github/workflows/ci.yml`.
   Actions de terceros pineadas por commit SHA, no tag flotante (`actions/checkout`, `SocketDev/action`) y
   `permissions:` mínimo explícito por job, siguiendo `development-standards.md` sección 4.
   La [Socket Security GitHub App](https://github.com/marketplace/socket-security) también está instalada en el
@@ -202,4 +208,19 @@ Al iniciar sesión o tras una compactación, llamar `mem_context` para recuperar
 
 El proyecto ya creció una vez (2026-07-15: se agregaron tests, lint, Makefile, git hooks y un backlog en GitHub Issues) y este archivo se actualizó para reflejarlo. Si vuelve a crecer (se agrega backend, más milestones del backlog, un flujo de trabajo distinto), actualizar este `CLAUDE.md` de nuevo. Evitar imponer proceso adicional (arquitectura por capas, cobertura diferenciada por capa, secret manager externo) que no aporta valor al tamaño actual — se descartaron explícitamente del checklist de `/home/kuautli/Projects/README.md` porque el propio repo solo tiene un mantenedor, sin equipo revisando PRs en paralelo (detalle histórico de esa decisión en el historial de git de `user-stories/README.md` antes de que se eliminara la carpeta el 2026-07-16).
 
-**"Sin CI hosteado" dejó de ser absoluto el 2026-07-18**: sigue siendo la decisión por default para el flujo de un colaborador humano (`make validate` local + git hooks alcanza), pero ahora hay una CI hosteada acotada a un caso puntual — validar automáticamente los PRs que abre Dependabot con Socket Firewall antes de que lleguen a revisión manual (ver sección "Seguridad y secretos" e issue #38). Es la misma lógica que `development-standards.md` sección 4 describe para repos solo/bajo tráfico: el sustituto local sigue siendo válido para el caso general, CI hosteada se justifica solo donde el script de validación local no alcanza (acá, código propuesto por un bot antes de que un humano lo mire). Si en el futuro se agregan más jobs de CI hosteada más allá de este caso puntual, documentar la razón de cada uno acá — no dejar que "ya hay un workflow" se use como excusa para agregar más sin justificación propia.
+**"Sin CI hosteado" se revirtió el 2026-07-18.** Primero se agregó como excepción puntual solo para PRs
+de Dependabot (`dependabot-socket-firewall.yml`, ver sección "Seguridad y secretos"); el mismo día se
+generalizó a `.github/workflows/ci.yml` corriendo en todo PR/push a `main` — decisión explícita del
+usuario, no una deriva accidental de la excepción puntual. `ci.yml` reusa el Makefile como interfaz
+única (cada job corre `make <target>`, sin duplicar lógica) siguiendo `development-standards.md`
+sección 4: jobs independientes y paralelos (`lock-check`, `license-check`, `lint`, `test`), y `build`
+gateado a push en `main` solo si el resto pasó.
+
+**Los git hooks no se eliminaron ni se volvieron redundantes.** `pre-push` sigue corriendo `make
+validate` completo localmente antes de llegar a `main` — mismo patrón que documenta
+`dockyard2sail-ts/CLAUDE.md`: CI es la red de seguridad en el server, los hooks son el feedback rápido
+en el host, y como ambos corren los mismos targets de Makefile no pueden divergir entre sí.
+
+`dependabot-socket-firewall.yml` sigue existiendo aparte de `ci.yml` y no es redundante con él: hace
+un chequeo distinto (Socket Firewall detectando dependencias maliciosas, con auto-cierre del PR) que
+`ci.yml` no cubre — ambos corren sobre los PRs de Dependabot, cada uno con su propio propósito.
