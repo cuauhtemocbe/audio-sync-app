@@ -161,6 +161,18 @@ usos, sin decoración adicional en el resto de la UI.
   Edition. Primer scan: Quality Gate PASSED, 0 vulnerabilidades, 5 issues menores encontradas y corregidas ese
   mismo día (ver detalle en la memoria de Engram `sonarqube-first-scan-2026-07-15`). `/sonar-check` y las tools
   `mcp__sonarqube__*` ya se pueden usar con confianza para este proyecto.
+- **CI hosteada (GitHub Actions) desde 2026-07-18, solo para PRs de Dependabot** (issue #38):
+  `.github/workflows/dependabot-socket-firewall.yml` corre `sfw pnpm install` (Socket Firewall Free,
+  [SocketDev/action](https://github.com/SocketDev/action) en modo `firewall-free`) sobre cada PR que abre
+  `dependabot[bot]` hacia `main`, y lo cierra automáticamente con un comentario si el firewall bloquea una
+  dependencia maliciosa/comprometida. Es una excepción puntual a la decisión de "sin CI hosteado" de la sección
+  "Adaptar este archivo" — el motivo es específico (validar automáticamente PRs de un bot antes de revisión
+  humana, no reemplazar el flujo de validación local para PRs de un colaborador), no una reversión general.
+  Actions de terceros pineadas por commit SHA, no tag flotante (`actions/checkout`, `SocketDev/action`) y
+  `permissions:` mínimo explícito por job, siguiendo `development-standards.md` sección 4.
+  La [Socket Security GitHub App](https://github.com/marketplace/socket-security) también está instalada en el
+  repo (2026-07-18) — agrega SCA continuo fuera de los PRs de Dependabot, complementando al workflow. Issue #38
+  cerrada con ambas capas implementadas.
 
 ---
 
@@ -188,4 +200,6 @@ Al iniciar sesión o tras una compactación, llamar `mem_context` para recuperar
 
 ## Adaptar este archivo
 
-El proyecto ya creció una vez (2026-07-15: se agregaron tests, lint, Makefile, git hooks y un backlog en GitHub Issues) y este archivo se actualizó para reflejarlo. Si vuelve a crecer (se agrega backend, más milestones del backlog, un flujo de trabajo distinto), actualizar este `CLAUDE.md` de nuevo. Evitar imponer proceso adicional (arquitectura por capas, CI hosteado, cobertura diferenciada por capa, secret manager externo) que no aporta valor al tamaño actual — se descartaron explícitamente del checklist de `/home/kuautli/Projects/README.md` porque el propio repo solo tiene un mantenedor, sin CI hosteado ni equipo revisando PRs en paralelo (detalle histórico de esa decisión en el historial de git de `user-stories/README.md` antes de que se eliminara la carpeta el 2026-07-16).
+El proyecto ya creció una vez (2026-07-15: se agregaron tests, lint, Makefile, git hooks y un backlog en GitHub Issues) y este archivo se actualizó para reflejarlo. Si vuelve a crecer (se agrega backend, más milestones del backlog, un flujo de trabajo distinto), actualizar este `CLAUDE.md` de nuevo. Evitar imponer proceso adicional (arquitectura por capas, cobertura diferenciada por capa, secret manager externo) que no aporta valor al tamaño actual — se descartaron explícitamente del checklist de `/home/kuautli/Projects/README.md` porque el propio repo solo tiene un mantenedor, sin equipo revisando PRs en paralelo (detalle histórico de esa decisión en el historial de git de `user-stories/README.md` antes de que se eliminara la carpeta el 2026-07-16).
+
+**"Sin CI hosteado" dejó de ser absoluto el 2026-07-18**: sigue siendo la decisión por default para el flujo de un colaborador humano (`make validate` local + git hooks alcanza), pero ahora hay una CI hosteada acotada a un caso puntual — validar automáticamente los PRs que abre Dependabot con Socket Firewall antes de que lleguen a revisión manual (ver sección "Seguridad y secretos" e issue #38). Es la misma lógica que `development-standards.md` sección 4 describe para repos solo/bajo tráfico: el sustituto local sigue siendo válido para el caso general, CI hosteada se justifica solo donde el script de validación local no alcanza (acá, código propuesto por un bot antes de que un humano lo mire). Si en el futuro se agregan más jobs de CI hosteada más allá de este caso puntual, documentar la razón de cada uno acá — no dejar que "ya hay un workflow" se use como excusa para agregar más sin justificación propia.

@@ -1,0 +1,43 @@
+name: Dependabot Socket Firewall
+
+# Gatea los PRs que abre Dependabot (issue #38): antes de que alguien los revise a mano,
+# reinstala las dependencias del PR a través de Socket Firewall Free (sfw) y cierra el PR
+# solo si sfw detecta un paquete malicioso/comprometido en la cadena de instalación.
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  socket-check:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    # Desde 2021-10, los workflows disparados por PRs de Dependabot respetan este bloque
+    # (antes corrían siempre con GITHUB_TOKEN de solo lectura) — sin esto, "gh pr close" abajo
+    # fallaría por falta de permisos.
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # ubuntu-latest es glibc (a diferencia de las imágenes Alpine del proyecto), así que
+      # corepack funciona sin el problema de musl documentado en Dockerfile/Dockerfile.dev.
+      - name: Habilitar pnpm
+        run: corepack enable && corepack prepare pnpm@11.14.0 --activate
+
+      - uses: SocketDev/action@2d3f25590c6ed6ba11a9a14c064d962a3a04698f # v1.3.2
+        with:
+          mode: firewall-free
+
+      - name: Instalar con firewall
+        id: install
+        run: sfw pnpm install
+        continue-on-error: true
+
+      - name: Cerrar PR si el firewall bloqueó algo
+        if: steps.install.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr close ${{ github.event.pull_request.number }} \
+            --comment "🚫 Socket Firewall bloqueó esta dependencia por comportamiento malicioso/sospechoso durante \`sfw pnpm install\`. Cerrado automáticamente — si es un falso positivo, revisar el log del job y reabrir manualmente."
