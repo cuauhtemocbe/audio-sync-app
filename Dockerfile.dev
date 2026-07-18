@@ -1,13 +1,50 @@
-FROM node:22 AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /workspace
 
+# bash: para el alias interactivo de abajo (Alpine no lo trae por default).
+# curl: para bajar el binario de sfw a mano (ver más abajo).
+# libstdc++/libgcc: runtime dinámico que necesita el binario musl de sfw.
+RUN apk add --no-cache bash curl libstdc++ libgcc
+
+# pnpm se instala vía npm, no corepack: corepack resuelve la versión pineada a través del
+# paquete @pnpm/exe, que solo publica binarios linkeados contra glibc y se rompe en silencio
+# sobre esta imagen Alpine (musl) — mismo motivo que en el Dockerfile de producción.
+RUN npm install -g pnpm@11.14.0
+
+# sfw (Socket Firewall Free) intercepta la instalación de dependencias y bloquea paquetes
+# maliciosos/comprometidos en tiempo real — se usa acá y en docker-compose.dev.yml (que
+# vuelve a instalar sobre el bind mount en /app) en vez de pnpm/npm sueltos.
+# NO se instala con "npm install -g sfw": ese wrapper arma el nombre del asset a descargar
+# solo con process.platform/process.arch, sin detectar musl, así que en Alpine baja el
+# binario glibc y falla el spawn en silencio (el wrapper traga el error del child process).
+# El release sí publica un asset musl — se baja directo, evitando el wrapper roto.
+RUN SFW_ARCH="$(uname -m)" && \
+    case "$SFW_ARCH" in \
+      x86_64) SFW_ASSET=sfw-free-musl-linux-x86_64 ;; \
+      aarch64) SFW_ASSET=sfw-free-musl-linux-arm64 ;; \
+      *) echo "arquitectura no soportada por sfw-free: $SFW_ARCH" >&2; exit 1 ;; \
+    esac && \
+    SFW_URL="$(curl -fsSL https://api.github.com/repos/SocketDev/sfw-free/releases/latest \
+      | grep -o "\"browser_download_url\": *\"[^\"]*${SFW_ASSET}\"" \
+      | cut -d'"' -f4)" && \
+    curl -fsSL -o /usr/local/bin/sfw "$SFW_URL" && \
+    chmod +x /usr/local/bin/sfw
+
 COPY . /workspace
-RUN npm install
+RUN sfw pnpm install
 
 USER node
 
-HEALTHCHECK --interval=5s --timeout=3s --start-period=30s --retries=5 \
+# Alias para uso interactivo dentro del contenedor (docker compose exec ... bash), ej. al
+# agregar una dependencia nueva a mano. No se toca el shell del host: todo pasa por Docker.
+RUN echo 'alias pnpm="sfw pnpm"' >> /home/node/.bashrc
+
+# start_period a 150s (antes 30s): docker-compose.dev.yml vuelve a correr "sfw pnpm install" sobre
+# el bind mount al arrancar el contenedor, y sfw agrega la verificación de todo el lockfile contra
+# las políticas de supply-chain antes de instalar — medido en ~70s en este entorno, contra los <30s
+# que tardaba el "npm install" plano anterior (ver milestone-8-docker-hardening-part2).
+HEALTHCHECK --interval=5s --timeout=3s --start-period=150s --retries=5 \
   CMD node -e "require('http').get('http://127.0.0.1:5173/', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["pnpm", "run", "dev", "--host"]

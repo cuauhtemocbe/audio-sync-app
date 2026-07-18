@@ -1,12 +1,17 @@
-FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS builder
+FROM node:26-alpine@sha256:e88a35be04478413b7c71c455cd9865de9b9360e1f43456be5951032d7ac1a66 AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install
+# pnpm se instala vía npm, no corepack: corepack resuelve la versión pineada a través del
+# paquete @pnpm/exe, que solo publica binarios linkeados contra glibc y se rompe en silencio
+# sobre esta imagen Alpine (musl). npm install -g funciona igual en cualquier libc.
+RUN npm install -g pnpm@11.14.0
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN npm run build
+RUN pnpm run build
 
 FROM nginx:alpine@sha256:54f2a904c251d5a34adf545a72d32515a15e08418dae0266e23be2e18c66fefa
 

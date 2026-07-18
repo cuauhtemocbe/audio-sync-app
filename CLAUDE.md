@@ -11,6 +11,7 @@ Guía de instrucciones para Claude Code al trabajar en este repositorio.
 **Stack:**
 - React 18 + Vite 5
 - Tailwind CSS
+- pnpm (gestor de paquetes, ver nota abajo)
 - Vitest + React Testing Library (tests)
 - ESLint + Prettier (lint/format)
 - Husky + lint-staged (git hooks)
@@ -79,9 +80,10 @@ Arrancar el servidor de dev (`make dev`) y probar la feature en el navegador man
 - **Lógica de negocio pura separada de la presentación cuando hay riesgo de bugs sutiles**: `getActiveWordIndex(words, currentTime)` (`src/getActiveWordIndex.js`) se extrajo de `App.jsx` específicamente para poder testearla sin montar el componente. No es una regla general de "todo a funciones puras" — es la excepción para el área de mayor riesgo (sincronización audio/texto), no un patrón a repetir en cada función.
 - **Tests colocados junto al archivo que cubren** (`getActiveWordIndex.js` + `getActiveWordIndex.test.js` en la misma carpeta), no un árbol `tests/` separado.
 - **ESLint plano (`eslint.config.js`, flat config)** con `eslint-plugin-react-hooks` — no usar `.eslintrc.*` (ESLint 10 solo soporta flat config).
-- **Prettier**: single quotes, sin semicolons, `printWidth: 100` (ver `.prettierrc`). `.prettierignore` excluye `aligned_transcript.json` (es un dato, no código) y `package-lock.json`.
+- **Prettier**: single quotes, sin semicolons, `printWidth: 100` (ver `.prettierrc`). `.prettierignore` excluye `aligned_transcript.json` (es un dato, no código) y `pnpm-lock.yaml`.
 - El transcript (`aligned_transcript.json`) sigue el formato de salida de Rev.ai (`monologues[].elements[]`, cada elemento con `type`, `value`, `ts`).
 - **`node_modules/` NO está trackeado en git** (se destrackeó el 2026-07-15: estaba trackeado desde antes de que existiera el `.gitignore`, y provocó que `lint-staged` perdiera cambios sin commitear dos veces al tropezar con un archivo `root`-owned dentro del árbol — detalle completo en la memoria de Engram `node-modules-tracked-bug`). No volver a hacer `git add -f node_modules` ni sacarlo de `.gitignore`.
+- **pnpm en vez de npm** (migrado 2026-07-18): `package.json` fija la versión exacta con `"packageManager": "pnpm@11.14.0"`, activada vía `corepack enable && corepack prepare pnpm@11.14.0 --activate` en ambos Dockerfiles — no asumir `npm install`/`npm test` en comandos nuevos, es `pnpm install`/`pnpm test`. El lockfile es `pnpm-lock.yaml` (reemplazó a `package-lock.json`, que ya no existe). `pnpm-workspace.yaml` tiene `allowBuilds: { esbuild: true }` — pnpm 11 bloquea por defecto los postinstall scripts de dependencias no listadas ahí; si una dependencia nueva necesita un build script, hay que agregarla explícitamente a esa allowlist, no aprobarla a ciegas.
 
 ### Design tokens (paleta VU-meter)
 
@@ -132,6 +134,11 @@ usos, sin decoración adicional en el resto de la UI.
 
 - `docker-compose.dev.yml` levanta el entorno de desarrollo con hot reload en el puerto `5173`.
 - `docker-compose.prod.yml` sirve el build de producción vía nginx en el puerto `8080`.
+- **Ambos Dockerfiles usan `node:26-alpine`** (migrado 2026-07-18 desde `node:22`/`node:22-alpine`). `Dockerfile` (producción) lo pinea por digest; `Dockerfile.dev` usa el tag flotante a propósito (misma asimetría documentada en `development-standards.md` — parches de seguridad automáticos en dev pesan más que reproducibilidad exacta ahí).
+- **pnpm se instala con `npm install -g pnpm@11.14.0`, nunca con `corepack prepare`**, en ambos Dockerfiles. Corepack resuelve la versión pineada vía el paquete `@pnpm/exe`, que solo publica binarios linkeados contra glibc — en la base Alpine (musl) la instalación se rompe en silencio. `npm install -g` no tiene ese problema en ninguna libc.
+- **`sfw` (Socket Firewall Free) en `Dockerfile.dev` se instala bajando el binario a mano, no con `npm install -g sfw`.** El wrapper npm de sfw arma el nombre del asset a descargar solo con `process.platform`/`process.arch` — nunca detecta musl — así que en Alpine baja el binario glibc, falla al hacer `spawn()` del binario, y **traga el error en silencio** (`child.on("error", () => process.exit(1))` en su propio código, sin loggear nada — costó una sesión entera de debugging aislarlo). El release de `SocketDev/sfw-free` sí publica assets `sfw-free-musl-linux-{x86_64,arm64}`; el `RUN` en `Dockerfile.dev` detecta la arquitectura con `uname -m` y baja ese asset directo desde la API de GitHub releases, evitando el wrapper roto.
+- **Bug de pnpm + vite `--host` aislado 2026-07-18: nunca usar `pnpm run dev -- --host` (con el separador `--`).** Con pnpm (a diferencia de npm), agregar `--` antes de los flags hace que Vite los reciba pero los ignore silenciosamente — el banner de arranque muestra "Network: use --host to expose" en vez de la IP real, el healthcheck falla por `ECONNREFUSED` (Vite ni siquiera bindea el puerto), y ni `--host` ni `--port` se aplican. La forma correcta es `pnpm run dev --host` (sin `--`) — así está en `Dockerfile.dev` (`CMD`) y `docker-compose.dev.yml` (`command`). Si se necesita pasar más flags a un script de pnpm en este proyecto, probar primero sin el separador.
+- **`sfw pnpm install` en el arranque del contenedor de dev es sensiblemente más lento que un `pnpm install` plano** (baja el binario la primera vez que corre en la imagen — ya no aplica en runtime porque el binario queda instalado en la imagen — y siempre verifica el lockfile completo contra las políticas de supply-chain antes de instalar, medido en ~70-90s). El `HEALTHCHECK` de `Dockerfile.dev` tiene `start_period=150s` por esto (antes 30s, calibrado para `npm install` plano — ver `milestone-8-docker-hardening-part2`). Si se vuelve a bajar el `start_period` sin este contexto, `make dev`/`make validate` van a fallar por falso timeout con el contenedor en realidad sano.
 
 (Cuándo correr `/trivy-scan` y cuándo usar la skill `use-railway` está en "Flujo de trabajo recomendado" — no repetido acá.)
 
@@ -160,7 +167,7 @@ usos, sin decoración adicional en el resto de la UI.
 ## Testing
 
 - **Vitest + jsdom** configurado en `vite.config.js` (sección `test`), con `@testing-library/react` y `@testing-library/jest-dom` disponibles para tests de componente futuros (hoy los tests son de la función pura, no de renderizado).
-- **Correr los tests**: `make test` (dentro de Docker, levanta el servicio si hace falta) o `npm test` en local. Cobertura con `make coverage` / `npm run test:coverage` — el reporte queda en `coverage/` (ya montado en `docker-compose.dev.yml`, visible en el host sin copiar).
+- **Correr los tests**: `make test` (dentro de Docker, levanta el servicio si hace falta) o `pnpm test` en local. Cobertura con `make coverage` / `pnpm run test:coverage` — el reporte queda en `coverage/` (ya montado en `docker-compose.dev.yml`, visible en el host sin copiar).
 - **Cobertura actual**: `src/getActiveWordIndex.js` (la lógica de sincronización, el área de mayor riesgo de bugs sutiles — off-by-one en timestamps, palabras sin `ts`, seek, fin de audio) tiene 7 tests cubriendo los casos ZOMBIES. `src/usePrefersReducedMotion.js` tiene 3 tests (valor inicial, preferencia activada, reacción en caliente a cambios del sistema). El resto de `App.jsx` (rendering, efectos) no tiene tests todavía.
 - Al agregar tests nuevos, usar la skill `/testing` para la estrategia y seguir la convención de tests colocados junto al archivo (`Componente.jsx` + `Componente.test.jsx`).
 - No agregar un framework de testing pesado ni mutation testing para un proyecto de este tamaño salvo que el usuario lo pida explícitamente.
@@ -181,4 +188,4 @@ Al iniciar sesión o tras una compactación, llamar `mem_context` para recuperar
 
 ## Adaptar este archivo
 
-El proyecto ya creció una vez (2026-07-15: se agregaron tests, lint, Makefile, git hooks y un backlog en GitHub Issues) y este archivo se actualizó para reflejarlo. Si vuelve a crecer (se agrega backend, más milestones del backlog, un flujo de trabajo distinto), actualizar este `CLAUDE.md` de nuevo. Evitar imponer proceso adicional (arquitectura por capas, CI hosteado, cobertura diferenciada por capa, secret manager externo) que no aporta valor al tamaño actual — se descartaron explícitamente del checklist de `/home/kuautli/Projects/README.md` porque el propio repo solo tiene un mantenedor, sin CI hosteado ni equipo revisando PRs en paralelo (detalle histórico de esa decisión, incluyendo la nota sobre Dependabot, en el historial de git de `user-stories/README.md` antes de que se eliminara la carpeta el 2026-07-16).
+El proyecto ya creció una vez (2026-07-15: se agregaron tests, lint, Makefile, git hooks y un backlog en GitHub Issues) y este archivo se actualizó para reflejarlo. Si vuelve a crecer (se agrega backend, más milestones del backlog, un flujo de trabajo distinto), actualizar este `CLAUDE.md` de nuevo. Evitar imponer proceso adicional (arquitectura por capas, CI hosteado, cobertura diferenciada por capa, secret manager externo) que no aporta valor al tamaño actual — se descartaron explícitamente del checklist de `/home/kuautli/Projects/README.md` porque el propio repo solo tiene un mantenedor, sin CI hosteado ni equipo revisando PRs en paralelo (detalle histórico de esa decisión en el historial de git de `user-stories/README.md` antes de que se eliminara la carpeta el 2026-07-16).

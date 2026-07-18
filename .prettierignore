@@ -3,5 +3,5 @@ dist
 coverage
 .codegraph
 src/aligned_transcript.json
-package-lock.json
+pnpm-lock.yaml
 public

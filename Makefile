@@ -15,16 +15,16 @@ down: ## Detiene el entorno de desarrollo
 	docker compose -f docker-compose.dev.yml down
 
 test: up-d ## Corre la suite de tests dentro de Docker
-	docker compose -f docker-compose.dev.yml exec -T audio-sync-app npm test
+	docker compose -f docker-compose.dev.yml exec -T audio-sync-app pnpm test
 
 coverage: up-d ## Genera el reporte de cobertura dentro de Docker (visible en host en coverage/)
-	docker compose -f docker-compose.dev.yml exec -T audio-sync-app npm run test:coverage
+	docker compose -f docker-compose.dev.yml exec -T audio-sync-app pnpm run test:coverage
 
 build: ## Construye la imagen de producción
 	docker build -t audio-sync-app:prod .
 
 lint: up-d ## Corre ESLint dentro de Docker
-	docker compose -f docker-compose.dev.yml exec -T audio-sync-app npm run lint
+	docker compose -f docker-compose.dev.yml exec -T audio-sync-app pnpm run lint
 
 license-check: ## Verifica que exista el archivo LICENSE
 	@test -f LICENSE

@@ -6,7 +6,11 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-    command: sh -c "npm install && npm run dev -- --host"
+    # Sin "--" antes de --host: con pnpm (a diferencia de npm), "pnpm run dev -- --host" hace que
+    # vite reciba el flag pero lo ignore (banner "Network: use --host to expose", sin bindear a
+    # 0.0.0.0) — "pnpm run dev --host" a secas sí lo pasa correctamente. Bug reproducido y aislado
+    # el 2026-07-18: con "--" vite ni siquiera respeta --port, cae al auto-incremento default.
+    command: sh -c "sfw pnpm install && pnpm run dev --host"
     ports:
       - "5173:5173"
     environment:
