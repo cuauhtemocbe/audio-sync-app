@@ -1,0 +1,57 @@
+name: CI
+
+# Jobs independientes y paralelos (lock-check, license-check, lint, test, build) sobre cada PR y
+# push a main, siguiendo development-standards.md sección 4. Reemplaza la decisión anterior de
+# "sin CI hosteado" — ver CLAUDE.md ("Adaptar este archivo") para el porqué del cambio. Todos los
+# jobs corren "make <target>" para no duplicar lógica: el Makefile sigue siendo la única interfaz
+# de comandos del proyecto, tanto en local como en CI (ubuntu-latest trae Docker preinstalado).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lock-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - run: make lock-check
+      - if: failure()
+        run: docker compose -f docker-compose.dev.yml logs
+
+  license-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - run: make license-check
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - run: make lint
+      - if: failure()
+        run: docker compose -f docker-compose.dev.yml logs
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - run: make coverage
+      - if: failure()
+        run: docker compose -f docker-compose.dev.yml logs
+
+  # No se construye la imagen de producción en cada PR, solo al mergear a main y solo si el resto
+  # de los jobs pasó — no vale la pena buildear una imagen sobre código que ni siquiera compila/pasa lint.
+  build:
+    needs: [lock-check, license-check, lint, test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - run: make build
