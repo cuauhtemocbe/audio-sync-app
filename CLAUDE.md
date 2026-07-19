@@ -224,3 +224,12 @@ en el host, y como ambos corren los mismos targets de Makefile no pueden divergi
 `dependabot-socket-firewall.yml` sigue existiendo aparte de `ci.yml` y no es redundante con él: hace
 un chequeo distinto (Socket Firewall detectando dependencias maliciosas, con auto-cierre del PR) que
 `ci.yml` no cubre — ambos corren sobre los PRs de Dependabot, cada uno con su propio propósito.
+
+**`ci.yml` no bloquea merges — es informativo, no gate.** Se intentó registrar sus checks como
+required status checks vía branch protection (`PUT /repos/.../branches/main/protection`) y también
+vía repository rulesets (la alternativa más nueva); ambas APIs devuelven 403 "Upgrade to GitHub Pro or
+make this repository public to enable this feature" — es un límite del plan free de GitHub para repos
+privados, no un paso de configuración que falte. No es un descuido: un PR puede mergearse hoy aunque
+`ci.yml` esté en rojo. Si el repo pasa a plan pago o se hace público, ahí sí vale la pena activar branch
+protection con estos jobs como required checks (`enforce_admins: false` para que el owner pueda seguir
+pusheando directo cuando haga falta, como recomienda `development-standards.md` sección 4).
