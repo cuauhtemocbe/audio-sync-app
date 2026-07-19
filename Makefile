@@ -2,6 +2,13 @@
 
 .PHONY: help dev up-d down test coverage build lint license-check lock-check validate
 
+# UID/GID de quien invoca make, para que Dockerfile.dev cree el usuario "node" con ese UID/GID
+# (ver el porqué en Dockerfile.dev) — así el bind mount de docker-compose.dev.yml queda
+# escribible sin correr el contenedor como root. En CI (ci.yml) esto toma el UID/GID del
+# usuario "runner" automáticamente, sin necesitar lógica separada para ese caso.
+export UID := $(shell id -u)
+export GID := $(shell id -g)
+
 help: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 

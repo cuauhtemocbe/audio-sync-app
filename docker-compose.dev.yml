@@ -3,6 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+      # UID/GID del usuario que invoca `make` (ver Dockerfile.dev) — el Makefile los exporta al
+      # entorno antes de correr docker compose, así que por default esto no cambia nada.
+      args:
+        UID: "${UID:-1000}"
+        GID: "${GID:-1000}"
     working_dir: /app
     volumes:
       - .:/app
@@ -15,9 +20,6 @@ services:
       - "5173:5173"
     environment:
       - NODE_ENV=development
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:5173/', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 30s
+    # Sin healthcheck: propio acá — el HEALTHCHECK de Dockerfile.dev ya cubre esto (start_period
+    # calibrado ahí, con el porqué documentado). Tener los dos por separado hizo que este bloque
+    # pisara en silencio el start_period del Dockerfile durante toda una sesión de debugging.
