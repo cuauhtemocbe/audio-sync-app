@@ -57,8 +57,14 @@ Todos los comandos de desarrollo pasan por `make` (correr `make` sin argumentos 
 | `make test` | Corre la suite de Vitest dentro de Docker (levanta el servicio si hace falta) |
 | `make coverage` | Genera el reporte de cobertura en `coverage/` |
 | `make lint` | Corre ESLint dentro de Docker |
+| `make lock-check` | Verifica que `pnpm-lock.yaml` esté sincronizado con `package.json` (`pnpm install --frozen-lockfile`) |
+| `make license-check` | Verifica que exista el archivo `LICENSE` |
 | `make build` | Construye la imagen de producción |
-| `make validate` | Corre `lint → test → build` en orden, se detiene en el primer paso que falla |
+| `make validate` | Corre `lock-check → lint → coverage → build → license-check` en orden, se detiene en el primer paso que falla |
+
+CI (`.github/workflows/ci.yml`) corre cada uno de estos targets como job independiente y paralelo sobre
+PRs/pushes a `main` — no duplica la lógica, solo invoca `make <target>` (ver "Adaptar este archivo" para
+el porqué de tener CI hosteada ahora).
 
 ### Git hooks (Husky)
 
@@ -139,6 +145,8 @@ usos, sin decoración adicional en el resto de la UI.
 - **`sfw` (Socket Firewall Free) en `Dockerfile.dev` se instala bajando el binario a mano, no con `npm install -g sfw`.** El wrapper npm de sfw arma el nombre del asset a descargar solo con `process.platform`/`process.arch` — nunca detecta musl — así que en Alpine baja el binario glibc, falla al hacer `spawn()` del binario, y **traga el error en silencio** (`child.on("error", () => process.exit(1))` en su propio código, sin loggear nada — costó una sesión entera de debugging aislarlo). El release de `SocketDev/sfw-free` sí publica assets `sfw-free-musl-linux-{x86_64,arm64}`; el `RUN` en `Dockerfile.dev` detecta la arquitectura con `uname -m` y baja ese asset directo desde la API de GitHub releases, evitando el wrapper roto.
 - **Bug de pnpm + vite `--host` aislado 2026-07-18: nunca usar `pnpm run dev -- --host` (con el separador `--`).** Con pnpm (a diferencia de npm), agregar `--` antes de los flags hace que Vite los reciba pero los ignore silenciosamente — el banner de arranque muestra "Network: use --host to expose" en vez de la IP real, el healthcheck falla por `ECONNREFUSED` (Vite ni siquiera bindea el puerto), y ni `--host` ni `--port` se aplican. La forma correcta es `pnpm run dev --host` (sin `--`) — así está en `Dockerfile.dev` (`CMD`) y `docker-compose.dev.yml` (`command`). Si se necesita pasar más flags a un script de pnpm en este proyecto, probar primero sin el separador.
 - **`sfw pnpm install` en el arranque del contenedor de dev es sensiblemente más lento que un `pnpm install` plano** (baja el binario la primera vez que corre en la imagen — ya no aplica en runtime porque el binario queda instalado en la imagen — y siempre verifica el lockfile completo contra las políticas de supply-chain antes de instalar, medido en ~70-90s). El `HEALTHCHECK` de `Dockerfile.dev` tiene `start_period=150s` por esto (antes 30s, calibrado para `npm install` plano — ver `milestone-8-docker-hardening-part2`). Si se vuelve a bajar el `start_period` sin este contexto, `make dev`/`make validate` van a fallar por falso timeout con el contenedor en realidad sano.
+- **El healthcheck vive solo en `Dockerfile.dev`, no lo dupliques en `docker-compose.dev.yml`.** Compose tuvo su propio bloque `healthcheck:` con `start_period: 30s` que pisaba en silencio el `start_period=150s` del Dockerfile (el de compose gana cuando ambos existen) — la corrección del bullet de arriba no tenía efecto real hasta que se sacó ese bloque duplicado (2026-07-18). Si hace falta ajustar el healthcheck, tocar el `HEALTHCHECK` del Dockerfile únicamente.
+- **`Dockerfile.dev` crea el usuario `node` con el UID/GID de quien invoca `make`** (`ARG UID`/`GID`, default 1000:1000, ver el `RUN` que hace `deluser`/`adduser` antes de `USER node`), en vez de correr como root. `docker-compose.dev.yml` bind-montea el repo completo sobre `/app`, y un bind mount conserva los permisos del host — con el UID fijo en 1000 esto no se notaba en local (la mayoría de hosts Linux de un usuario ya son 1000:1000), pero en GitHub Actions el checkout queda con el UID del usuario `runner`, y `sfw pnpm install` fallaba con `EACCES: permission denied` al escribir en `/app` dentro de `ci.yml`. El Makefile exporta `UID`/`GID` con `$(shell id -u)`/`$(shell id -g)` antes de invocar `docker compose`, así que esto se resuelve solo tanto en local como en CI sin lógica especial por entorno. No "arreglar" esto sacando `USER node` y corriendo como root: ya se probó — deja `node_modules`/`coverage` root-owned en el host, imposibles de borrar sin un contenedor descartable (`docker run --rm -v $(pwd):/app alpine rm -rf /app/node_modules`).
 
 (Cuándo correr `/trivy-scan` y cuándo usar la skill `use-railway` está en "Flujo de trabajo recomendado" — no repetido acá.)
 
@@ -161,13 +169,13 @@ usos, sin decoración adicional en el resto de la UI.
   Edition. Primer scan: Quality Gate PASSED, 0 vulnerabilidades, 5 issues menores encontradas y corregidas ese
   mismo día (ver detalle en la memoria de Engram `sonarqube-first-scan-2026-07-15`). `/sonar-check` y las tools
   `mcp__sonarqube__*` ya se pueden usar con confianza para este proyecto.
-- **CI hosteada (GitHub Actions) desde 2026-07-18, solo para PRs de Dependabot** (issue #38):
-  `.github/workflows/dependabot-socket-firewall.yml` corre `sfw pnpm install` (Socket Firewall Free,
-  [SocketDev/action](https://github.com/SocketDev/action) en modo `firewall-free`) sobre cada PR que abre
-  `dependabot[bot]` hacia `main`, y lo cierra automáticamente con un comentario si el firewall bloquea una
-  dependencia maliciosa/comprometida. Es una excepción puntual a la decisión de "sin CI hosteado" de la sección
-  "Adaptar este archivo" — el motivo es específico (validar automáticamente PRs de un bot antes de revisión
-  humana, no reemplazar el flujo de validación local para PRs de un colaborador), no una reversión general.
+- **CI hosteada (GitHub Actions) desde 2026-07-18** (issue #38 + decisión de generalizarla el mismo
+  día, ver "Adaptar este archivo"): `.github/workflows/dependabot-socket-firewall.yml` corre `sfw pnpm
+  install` (Socket Firewall Free, [SocketDev/action](https://github.com/SocketDev/action) en modo
+  `firewall-free`) sobre cada PR que abre `dependabot[bot]` hacia `main`, y lo cierra automáticamente
+  con un comentario si el firewall bloquea una dependencia maliciosa/comprometida. Esto sigue siendo
+  específico a Dependabot (ningún otro workflow hace este chequeo); la CI general de lint/test/build
+  para todos los PRs vive aparte, en `.github/workflows/ci.yml`.
   Actions de terceros pineadas por commit SHA, no tag flotante (`actions/checkout`, `SocketDev/action`) y
   `permissions:` mínimo explícito por job, siguiendo `development-standards.md` sección 4.
   La [Socket Security GitHub App](https://github.com/marketplace/socket-security) también está instalada en el
@@ -202,4 +210,28 @@ Al iniciar sesión o tras una compactación, llamar `mem_context` para recuperar
 
 El proyecto ya creció una vez (2026-07-15: se agregaron tests, lint, Makefile, git hooks y un backlog en GitHub Issues) y este archivo se actualizó para reflejarlo. Si vuelve a crecer (se agrega backend, más milestones del backlog, un flujo de trabajo distinto), actualizar este `CLAUDE.md` de nuevo. Evitar imponer proceso adicional (arquitectura por capas, cobertura diferenciada por capa, secret manager externo) que no aporta valor al tamaño actual — se descartaron explícitamente del checklist de `/home/kuautli/Projects/README.md` porque el propio repo solo tiene un mantenedor, sin equipo revisando PRs en paralelo (detalle histórico de esa decisión en el historial de git de `user-stories/README.md` antes de que se eliminara la carpeta el 2026-07-16).
 
-**"Sin CI hosteado" dejó de ser absoluto el 2026-07-18**: sigue siendo la decisión por default para el flujo de un colaborador humano (`make validate` local + git hooks alcanza), pero ahora hay una CI hosteada acotada a un caso puntual — validar automáticamente los PRs que abre Dependabot con Socket Firewall antes de que lleguen a revisión manual (ver sección "Seguridad y secretos" e issue #38). Es la misma lógica que `development-standards.md` sección 4 describe para repos solo/bajo tráfico: el sustituto local sigue siendo válido para el caso general, CI hosteada se justifica solo donde el script de validación local no alcanza (acá, código propuesto por un bot antes de que un humano lo mire). Si en el futuro se agregan más jobs de CI hosteada más allá de este caso puntual, documentar la razón de cada uno acá — no dejar que "ya hay un workflow" se use como excusa para agregar más sin justificación propia.
+**"Sin CI hosteado" se revirtió el 2026-07-18.** Primero se agregó como excepción puntual solo para PRs
+de Dependabot (`dependabot-socket-firewall.yml`, ver sección "Seguridad y secretos"); el mismo día se
+generalizó a `.github/workflows/ci.yml` corriendo en todo PR/push a `main` — decisión explícita del
+usuario, no una deriva accidental de la excepción puntual. `ci.yml` reusa el Makefile como interfaz
+única (cada job corre `make <target>`, sin duplicar lógica) siguiendo `development-standards.md`
+sección 4: jobs independientes y paralelos (`lock-check`, `license-check`, `lint`, `test`), y `build`
+gateado a push en `main` solo si el resto pasó.
+
+**Los git hooks no se eliminaron ni se volvieron redundantes.** `pre-push` sigue corriendo `make
+validate` completo localmente antes de llegar a `main` — mismo patrón que documenta
+`dockyard2sail-ts/CLAUDE.md`: CI es la red de seguridad en el server, los hooks son el feedback rápido
+en el host, y como ambos corren los mismos targets de Makefile no pueden divergir entre sí.
+
+`dependabot-socket-firewall.yml` sigue existiendo aparte de `ci.yml` y no es redundante con él: hace
+un chequeo distinto (Socket Firewall detectando dependencias maliciosas, con auto-cierre del PR) que
+`ci.yml` no cubre — ambos corren sobre los PRs de Dependabot, cada uno con su propio propósito.
+
+**`ci.yml` no bloquea merges — es informativo, no gate.** Se intentó registrar sus checks como
+required status checks vía branch protection (`PUT /repos/.../branches/main/protection`) y también
+vía repository rulesets (la alternativa más nueva); ambas APIs devuelven 403 "Upgrade to GitHub Pro or
+make this repository public to enable this feature" — es un límite del plan free de GitHub para repos
+privados, no un paso de configuración que falte. No es un descuido: un PR puede mergearse hoy aunque
+`ci.yml` esté en rojo. Si el repo pasa a plan pago o se hace público, ahí sí vale la pena activar branch
+protection con estos jobs como required checks (`enforce_admins: false` para que el owner pueda seguir
+pusheando directo cuando haga falta, como recomienda `development-standards.md` sección 4).

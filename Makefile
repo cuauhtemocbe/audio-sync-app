@@ -1,6 +1,13 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help dev up-d down test coverage build lint license-check validate
+.PHONY: help dev up-d down test coverage build lint license-check lock-check validate
+
+# UID/GID de quien invoca make, para que Dockerfile.dev cree el usuario "node" con ese UID/GID
+# (ver el porqué en Dockerfile.dev) — así el bind mount de docker-compose.dev.yml queda
+# escribible sin correr el contenedor como root. En CI (ci.yml) esto toma el UID/GID del
+# usuario "runner" automáticamente, sin necesitar lógica separada para ese caso.
+export UID := $(shell id -u)
+export GID := $(shell id -g)
 
 help: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
@@ -29,5 +36,8 @@ lint: up-d ## Corre ESLint dentro de Docker
 license-check: ## Verifica que exista el archivo LICENSE
 	@test -f LICENSE
 
-validate: lint coverage build license-check ## Corre la validación completa (lint + coverage + build + license-check), se detiene en el primer paso que falla
+lock-check: up-d ## Verifica que pnpm-lock.yaml esté sincronizado con package.json
+	docker compose -f docker-compose.dev.yml exec -T audio-sync-app pnpm install --frozen-lockfile
+
+validate: lock-check lint coverage build license-check ## Corre la validación completa (lock-check + lint + coverage + build + license-check), se detiene en el primer paso que falla
 	@echo "validate OK"

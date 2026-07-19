@@ -1,5 +1,18 @@
 FROM node:26-alpine AS builder
 
+# UID/GID del usuario "node" (1000:1000 por default en la imagen), parametrizados por build-arg.
+# docker-compose.dev.yml bind-monta el repo completo sobre /app en runtime, y un bind mount
+# conserva los permisos del host, no los de la imagen: si el UID del contenedor no coincide con
+# el dueño del directorio del host, escribir ahí falla con EACCES. Local (Makefile) pasa
+# UID=$(id -u)/GID=$(id -g) del que invoca `make`, así que por default no cambia nada (la mayoría
+# de los hosts Linux de un solo usuario ya son 1000:1000). En GitHub Actions el checkout queda
+# con el UID del usuario "runner" (no 1000) — ahí este build-arg es lo que evita el EACCES en
+# "sfw pnpm install" al correr `make lint`/`make coverage` en ci.yml. Ver development-standards.md
+# sección 1 y 5 (mismo problema, la alternativa que sección 1 descarta ahí es correr como root en
+# dev — no sirve acá porque el dev container SÍ se usa para escribir en el bind mount del host).
+ARG UID=1000
+ARG GID=1000
+
 WORKDIR /workspace
 
 # bash: para el alias interactivo de abajo (Alpine no lo trae por default).
@@ -33,6 +46,13 @@ RUN SFW_ARCH="$(uname -m)" && \
 
 COPY . /workspace
 RUN sfw pnpm install
+
+# Re-crea "node" con el UID/GID pedido si no coincide con el default de la imagen (1000:1000).
+RUN if [ "$(id -u node)" != "$UID" ] || [ "$(id -g node)" != "$GID" ]; then \
+      deluser node && delgroup node 2>/dev/null; \
+      addgroup -g "$GID" node && adduser -D -u "$UID" -G node -h /home/node node; \
+    fi && \
+    mkdir -p /home/node && chown node:node /home/node
 
 USER node
 
