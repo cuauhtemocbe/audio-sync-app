@@ -3,6 +3,16 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      // "server" resuelve por DNS de Docker Compose al servicio server/index.js (puerto 3001),
+      // ambos servicios comparten la red default de docker-compose.dev.yml.
+      '/api': {
+        target: 'http://server:3001',
+        changeOrigin: true
+      }
+    }
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.js'],

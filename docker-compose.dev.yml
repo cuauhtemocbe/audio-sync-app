@@ -23,3 +23,37 @@ services:
     # Sin healthcheck: propio acá — el HEALTHCHECK de Dockerfile.dev ya cubre esto (start_period
     # calibrado ahí, con el porqué documentado). Tener los dos por separado hizo que este bloque
     # pisara en silencio el start_period del Dockerfile durante toda una sesión de debugging.
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        UID: "${UID:-1000}"
+        GID: "${GID:-1000}"
+    working_dir: /app
+    volumes:
+      - .:/app
+    # Reusa Dockerfile.dev (mismo fix de UID/GID y patrón sfw pnpm install) con un command
+    # distinto en vez de un Dockerfile nuevo — este servicio no sirve Vite, corre el proxy Express.
+    command: sh -c "sfw pnpm install && node server/index.js"
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    env_file: .env
+    # Override necesario (a diferencia del servicio de arriba): el HEALTHCHECK heredado de
+    # Dockerfile.dev apunta al puerto 5173 de Vite, que este servicio ni siquiera expone.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://127.0.0.1:3001/healthz', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+        ]
+      interval: 5s
+      timeout: 3s
+      start_period: 150s
+      retries: 5
