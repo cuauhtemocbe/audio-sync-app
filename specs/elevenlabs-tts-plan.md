@@ -107,17 +107,26 @@ tocar `.env`). El usuario debe crear `.env.example` a mano con un único `ELEVEN
 
 **Objetivo**: toda la lógica de transformación testeada sin browser ni API.
 
-- [ ] `src/normalizeText.js` + test (port reel-forge: puntuación, espacios, `\n` preservados)
-- [ ] `src/chunkText.js` + test — casos: oración única > límite (corte duro en palabra), texto sin puntuación de cierre, límite exacto, chunk vacío
-- [ ] `src/alignmentToWords.js` + test — formato Rev.ai actual; casos ZOMBIES + guard de arrays paralelos cortos
-- [ ] `src/offsetWords.js` (o dentro de generateNarration) + test — offset acumulativo por duración real de chunk
-- [ ] Agregar entrada de `thresholds` en `vite.config.js` (sección `test.coverage`) para cada uno de
+- [x] `src/normalizeText.js` + test (port reel-forge: puntuación, espacios, `\n` preservados)
+- [x] `src/chunkText.js` + test — casos: oración única > límite (corte duro en palabra), texto sin puntuación de cierre, límite exacto, chunk vacío
+- [x] `src/alignmentToWords.js` + test — formato Rev.ai actual; casos ZOMBIES + guard de arrays paralelos cortos
+- [x] `src/offsetWords.js` (o dentro de generateNarration) + test — offset acumulativo por duración real de chunk
+- [x] Agregar entrada de `thresholds` en `vite.config.js` (sección `test.coverage`) para cada uno de
       estos 4 módulos nuevos, igual que `getActiveWordIndex.js`/`usePrefersReducedMotion.js` — sin esto
       `make validate` no exige cobertura ahí aunque los tests existan (los thresholds del proyecto son
       por archivo, no hay un global)
 
 **Exit criteria**: `make test` verde con cobertura de los 4 módulos, con thresholds explícitos en
-`vite.config.js` (no solo tests presentes).
+`vite.config.js` (no solo tests presentes). **✅ Cumplido (2026-09-13)**: spec+plan dedicados en
+`specs/wave2-pure-functions.md` / `-plan.md` (spec-driven-dev). Las 4 funciones + 24 tests nuevos
+(53/53 tests totales verdes), cobertura 100% en los 4 módulos, thresholds explícitos agregados a
+`vite.config.js`, `make validate` completo verde. `alignmentToWords` se verificó contra una
+respuesta REAL de ElevenLabs (texto en inglés, capturada vía el proxy local) — no solo contra un
+fixture asumido: confirmó que los 3 arrays del alignment son paralelos sin `null`s, y que la
+puntuación llega como carácter propio pegado a la palabra anterior sin espacio previo. Nota de
+scope: el plan original consideraba un preset de voz en español; el usuario confirmó que la app es
+para texto en inglés por ahora, así que el fixture real y los tests quedaron en inglés (ver Wave 3
+`voices.js`, a ajustar si vuelve a haber alcance multi-idioma).
 
 ## Wave 3 — Orquestación + audio
 

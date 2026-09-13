@@ -58,6 +58,32 @@ export default defineConfig({
           branches: 0,
           functions: 0,
           lines: 0
+        },
+        // Wave 2 (ElevenLabs TTS, specs/wave2-pure-functions.md): funciones puras de
+        // transformación texto → chunks → words, 100% cobertura real medida en su implementación.
+        'src/normalizeText.js': {
+          statements: 100,
+          branches: 100,
+          functions: 100,
+          lines: 100
+        },
+        'src/chunkText.js': {
+          statements: 100,
+          branches: 100,
+          functions: 100,
+          lines: 100
+        },
+        'src/alignmentToWords.js': {
+          statements: 100,
+          branches: 100,
+          functions: 100,
+          lines: 100
+        },
+        'src/offsetWords.js': {
+          statements: 100,
+          branches: 100,
+          functions: 100,
+          lines: 100
         }
       }
     }
