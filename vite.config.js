@@ -33,12 +33,15 @@ export default defineConfig({
           functions: 75,
           lines: 100
         },
-        // 0% intencional hasta agregar tests de componente para App.jsx/main.jsx.
+        // branches en 85 (no 100): las guardas `if (audioRef.current)` del timer
+        // de polling (línea 25) y de seekTo (línea 34) nunca ejercitan la rama
+        // falsy — solo ocurriría si el ref se vuelve null en una carrera con el
+        // desmontaje, no reproducible de forma realista en un test de render.
         'src/App.jsx': {
-          statements: 0,
-          branches: 0,
-          functions: 0,
-          lines: 0
+          statements: 100,
+          branches: 85,
+          functions: 100,
+          lines: 100
         },
         'src/main.jsx': {
           statements: 0,
