@@ -174,33 +174,33 @@ export default function App() {
           <div className="font-body text-lg leading-relaxed text-justify">
             {words.map((w, idx) => {
               const isClickable = w.type === 'text'
+              const wordClassName = `cursor-pointer underline underline-offset-4 ${
+                prefersReducedMotion ? '' : 'transition-colors duration-150'
+              } ${
+                idx === activeWordIndex
+                  ? 'decoration-vu-peak text-vu-peak'
+                  : 'decoration-transparent text-vu-scale'
+              }`
+              const wordStyle = { textUnderlinePosition: 'under' }
+
+              if (!isClickable) {
+                return (
+                  <span key={w.id} className={wordClassName} style={wordStyle}>
+                    {w.value}
+                  </span>
+                )
+              }
+
               return (
-                <span
+                <button
                   key={w.id}
-                  onClick={isClickable ? () => seekTo(w.ts) : undefined}
-                  onKeyDown={
-                    isClickable
-                      ? (e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            seekTo(w.ts)
-                          }
-                        }
-                      : undefined
-                  }
-                  role={isClickable ? 'button' : undefined}
-                  tabIndex={isClickable ? 0 : undefined}
-                  className={`cursor-pointer underline underline-offset-4 ${
-                    prefersReducedMotion ? '' : 'transition-colors duration-150'
-                  } ${
-                    idx === activeWordIndex
-                      ? 'decoration-vu-peak text-vu-peak'
-                      : 'decoration-transparent text-vu-scale'
-                  }`}
-                  style={{ textUnderlinePosition: 'under' }}
+                  type="button"
+                  onClick={() => seekTo(w.ts)}
+                  className={`inline appearance-none p-0 m-0 border-0 bg-transparent font-inherit text-inherit ${wordClassName}`}
+                  style={wordStyle}
                 >
                   {w.value}
-                </span>
+                </button>
               )
             })}
           </div>

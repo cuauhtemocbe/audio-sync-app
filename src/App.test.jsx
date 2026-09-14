@@ -138,19 +138,14 @@ describe('App', () => {
     expect(audio.play).toHaveBeenCalled()
   })
 
-  it('al presionar Enter o Espacio sobre una palabra de tipo texto, busca y reproduce en su timestamp', async () => {
+  it('renderiza las palabras de tipo texto como <button> nativo, para que Enter/Espacio funcionen sin JS propio', async () => {
     generateNarration.mockResolvedValue({ audioUrl: 'blob:fake-url', words: WORDS_FIXTURE })
     const { container } = render(<App />)
     fireEvent.change(screen.getByLabelText('Texto a narrar'), { target: { value: 'Hola mundo' } })
     await generateAndWaitForReady(container)
 
-    const audio = getAudioElement(container)
-    fireEvent.keyDown(screen.getByText('world'), { key: 'Enter' })
-    expect(audio.currentTime).toBe(0.5)
-    expect(audio.play).toHaveBeenCalled()
-
-    fireEvent.keyDown(screen.getByText('world'), { key: ' ' })
-    expect(audio.play).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('button', { name: 'Hello' }).tagName).toBe('BUTTON')
+    expect(screen.getByRole('button', { name: 'world' }).tagName).toBe('BUTTON')
   })
 
   it('los elementos que no son de tipo texto no son interactivos', async () => {
