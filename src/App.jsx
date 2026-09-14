@@ -171,7 +171,7 @@ export default function App() {
             Tu navegador no soporta audio.
           </audio>
 
-          <div className="font-body text-lg leading-relaxed text-justify">
+          <div className="font-body text-lg leading-relaxed text-justify whitespace-pre-line">
             {words.map((w, idx) => {
               const isClickable = w.type === 'text'
               const wordClassName = `cursor-pointer underline underline-offset-4 ${

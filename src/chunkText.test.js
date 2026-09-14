@@ -52,4 +52,52 @@ describe('chunkText', () => {
     expect(chunks.length).toBeGreaterThan(1)
     chunks.forEach((chunk) => expect(chunk.length).toBeLessThanOrEqual(40))
   })
+
+  // issue #61: preservar los saltos de línea del input en vez de re-unir oraciones con ' ' hardcodeado
+  it('texto sin saltos de línea mantiene el mismo comportamiento de unión con un solo espacio', () => {
+    const text = 'Sentence one is here. Sentence two is here. Sentence three is here.'
+    expect(chunkText(text, 30)).toEqual([
+      'Sentence one is here.',
+      'Sentence two is here.',
+      'Sentence three is here.'
+    ])
+  })
+
+  it('una línea en blanco entre dos oraciones se conserva dentro del mismo chunk', () => {
+    const text = 'Sentence one.\n\nSentence two.'
+    expect(chunkText(text, 100)).toEqual(['Sentence one.\n\nSentence two.'])
+  })
+
+  it.each(['\n', '\n\n'])(
+    'cualquier separador de salto de línea entre oraciones sobrevive al chunking (%j)',
+    (separator) => {
+      const text = `Sentence one.${separator}Sentence two.`
+      expect(chunkText(text, 100)).toEqual([`Sentence one.${separator}Sentence two.`])
+    }
+  )
+
+  it('un corte duro por palabra conserva los saltos de línea internos', () => {
+    const text = 'one\ntwo\n\nthree four five six seven eight nine ten'
+    const chunks = chunkText(text, 15)
+    chunks.forEach((chunk) => {
+      expect(chunk.length).toBeLessThanOrEqual(15)
+      expect(chunk).not.toMatch(/^\s|\s$/)
+    })
+    expect(chunks.join(' ').replace(/ +/g, ' ')).toContain('one')
+    expect(chunks.some((chunk) => chunk.includes('\n'))).toBe(true)
+  })
+
+  it('dos oraciones pegadas sin ningún separador se unen con un espacio, como antes', () => {
+    expect(chunkText('Hi.World.', 100)).toEqual(['Hi. World.'])
+  })
+
+  it('un salto de párrafo cerca del límite del chunk no deja un salto de línea colgante en el borde', () => {
+    const text = 'Sentence one is here.\n\nSentence two is here.'
+    const chunks = chunkText(text, 25)
+    expect(chunks.length).toBeGreaterThan(1)
+    chunks.forEach((chunk) => {
+      expect(chunk.startsWith('\n')).toBe(false)
+      expect(chunk.endsWith('\n')).toBe(false)
+    })
+  })
 })

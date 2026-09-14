@@ -5,17 +5,28 @@
 // specs/elevenlabs-tts-plan.md.
 const DEFAULT_MAX_CHARS = 2500
 
+// Cada oración conserva su separador original (espacio, '\n', '\n\n') como prefijo propio en
+// vez de perderlo al trimmear — separator/content se re-unen con el separador real, no con un
+// ' ' hardcodeado (issue #61).
 function splitIntoSentences(text) {
-  return text.match(/[^.!?]+[.!?]*/g) || []
+  const rawSentences = text.match(/[^.!?]+[.!?]*/g) || []
+  return rawSentences.map((raw) => {
+    const [, separator, content] = raw.match(/^(\s*)([\s\S]*)$/)
+    return { separator, content }
+  })
 }
 
 function hardSplitByWords(text, maxChars) {
-  const words = text.trim().split(/\s+/)
+  // split con grupo de captura: índices pares son palabras, impares son el separador original
+  // entre la palabra anterior y la siguiente (preserva '\n'/'\n\n', no solo ' ').
+  const parts = text.trim().split(/(\s+)/)
   const chunks = []
   let current = ''
 
-  for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word
+  for (let i = 0; i < parts.length; i += 2) {
+    const word = parts[i]
+    const separator = i > 0 ? parts[i - 1] : ''
+    const candidate = current ? `${current}${separator}${word}` : word
     if (candidate.length > maxChars && current) {
       chunks.push(current)
       current = word
@@ -24,7 +35,7 @@ function hardSplitByWords(text, maxChars) {
     }
   }
   // current siempre tiene contenido acá: el llamador ya filtró oraciones en blanco
-  // antes de invocar hardSplitByWords (ver "sentence.trim() === ''" en chunkText).
+  // antes de invocar hardSplitByWords (ver "content.trim() === ''" en chunkText).
   chunks.push(current)
   return chunks
 }
@@ -41,19 +52,24 @@ export function chunkText(text, maxChars = DEFAULT_MAX_CHARS) {
     current = ''
   }
 
-  for (const sentence of splitIntoSentences(text)) {
-    if (sentence.trim() === '') continue
+  for (const { separator, content } of splitIntoSentences(text)) {
+    if (content.trim() === '') continue
 
-    if (sentence.length > maxChars) {
+    if (content.length > maxChars) {
       pushCurrent()
-      chunks.push(...hardSplitByWords(sentence, maxChars))
+      chunks.push(...hardSplitByWords(content, maxChars))
       continue
     }
 
-    const candidate = current ? `${current} ${sentence.trim()}` : sentence.trim()
+    // Sin current (arranca chunk nuevo) se descarta el separador: ningún chunk debe empezar
+    // con un salto de línea colgante. Con current, se usa el separador real; si no había
+    // ninguno entre oraciones pegadas (ej. "Hi.World.") se cae a ' ' como ya hacía el código
+    // anterior.
+    const joiner = current ? separator || ' ' : ''
+    const candidate = current + joiner + content
     if (candidate.length > maxChars) {
       pushCurrent()
-      current = sentence.trim()
+      current = content
     } else {
       current = candidate
     }

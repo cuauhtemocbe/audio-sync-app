@@ -114,6 +114,24 @@ describe('App', () => {
     expect(screen.getByText('Tiempo actual: 0.00 segundos')).toBeInTheDocument()
   })
 
+  it('muestra el mismo salto de línea que traen las palabras generadas en vez de colapsarlo (issue #61)', async () => {
+    const wordsWithLineBreak = [
+      { type: 'text', value: 'Hello', ts: 0, end_ts: 0.5 },
+      { type: 'punct', value: '.\n\n' },
+      { type: 'text', value: 'World', ts: 0.5, end_ts: 1.2 },
+      { type: 'punct', value: '.' }
+    ]
+    generateNarration.mockResolvedValue({ audioUrl: 'blob:fake-url', words: wordsWithLineBreak })
+    const { container } = render(<App />)
+    fireEvent.change(screen.getByLabelText('Texto a narrar'), { target: { value: 'Hola mundo' } })
+
+    await generateAndWaitForReady(container)
+
+    const transcript = container.querySelector('.whitespace-pre-line')
+    expect(transcript).toHaveClass('whitespace-pre-line')
+    expect(transcript.textContent).toBe('Hello.\n\nWorld.')
+  })
+
   it('resalta la primera palabra desde el inicio porque su timestamp es 0', async () => {
     generateNarration.mockResolvedValue({ audioUrl: 'blob:fake-url', words: WORDS_FIXTURE })
     const { container } = render(<App />)
