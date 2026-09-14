@@ -42,7 +42,15 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3001
-    env_file: .env
+    # required: false porque "docker compose exec" valida el env_file de TODOS los servicios del
+    # compose file, no solo el que se exec'ea — aunque up-d solo levante audio-sync-app (ver
+    # Makefile), lint/test/coverage/lock-check igual fallaban en CI por este archivo, que no
+    # existe ahí (gitignoreado, tiene el ELEVENLABS_API_KEY real). Sin esto, "server" nunca
+    # arranca sin .env de todos modos (server/index.js exige la key) — esto no lo omite, solo
+    # evita que docker compose aborte antes de siquiera intentarlo.
+    env_file:
+      - path: .env
+        required: false
     # Override necesario (a diferencia del servicio de arriba): el HEALTHCHECK heredado de
     # Dockerfile.dev apunta al puerto 5173 de Vite, que este servicio ni siquiera expone.
     healthcheck:
