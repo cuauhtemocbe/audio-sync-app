@@ -61,6 +61,7 @@ Todos los comandos de desarrollo pasan por `make` (correr `make` sin argumentos 
 | `make license-check` | Verifica que exista el archivo `LICENSE` |
 | `make build` | Construye la imagen de producción |
 | `make validate` | Corre `lock-check → lint → coverage → build → license-check` en orden, se detiene en el primer paso que falla |
+| `make rebuild-dev` | Reconstruye la imagen de `Dockerfile.dev` — correr manualmente tras cambiar `Dockerfile.dev`, `package.json` o `pnpm-lock.yaml` |
 
 CI (`.github/workflows/ci.yml`) corre cada uno de estos targets como job independiente y paralelo sobre
 PRs/pushes a `main` — no duplica la lógica, solo invoca `make <target>` (ver "Adaptar este archivo" para
@@ -147,6 +148,22 @@ usos, sin decoración adicional en el resto de la UI.
 - **`sfw pnpm install` en el arranque del contenedor de dev es sensiblemente más lento que un `pnpm install` plano** (baja el binario la primera vez que corre en la imagen — ya no aplica en runtime porque el binario queda instalado en la imagen — y siempre verifica el lockfile completo contra las políticas de supply-chain antes de instalar, medido en ~70-90s). El `HEALTHCHECK` de `Dockerfile.dev` tiene `start_period=150s` por esto (antes 30s, calibrado para `npm install` plano — ver `milestone-8-docker-hardening-part2`). Si se vuelve a bajar el `start_period` sin este contexto, `make dev`/`make validate` van a fallar por falso timeout con el contenedor en realidad sano.
 - **El healthcheck vive solo en `Dockerfile.dev`, no lo dupliques en `docker-compose.dev.yml`.** Compose tuvo su propio bloque `healthcheck:` con `start_period: 30s` que pisaba en silencio el `start_period=150s` del Dockerfile (el de compose gana cuando ambos existen) — la corrección del bullet de arriba no tenía efecto real hasta que se sacó ese bloque duplicado (2026-07-18). Si hace falta ajustar el healthcheck, tocar el `HEALTHCHECK` del Dockerfile únicamente.
 - **`Dockerfile.dev` crea el usuario `node` con el UID/GID de quien invoca `make`** (`ARG UID`/`GID`, default 1000:1000, ver el `RUN` que hace `deluser`/`adduser` antes de `USER node`), en vez de correr como root. `docker-compose.dev.yml` bind-montea el repo completo sobre `/app`, y un bind mount conserva los permisos del host — con el UID fijo en 1000 esto no se notaba en local (la mayoría de hosts Linux de un usuario ya son 1000:1000), pero en GitHub Actions el checkout queda con el UID del usuario `runner`, y `sfw pnpm install` fallaba con `EACCES: permission denied` al escribir en `/app` dentro de `ci.yml`. El Makefile exporta `UID`/`GID` con `$(shell id -u)`/`$(shell id -g)` antes de invocar `docker compose`, así que esto se resuelve solo tanto en local como en CI sin lógica especial por entorno. No "arreglar" esto sacando `USER node` y corriendo como root: ya se probó — deja `node_modules`/`coverage` root-owned en el host, imposibles de borrar sin un contenedor descartable (`docker run --rm -v $(pwd):/app alpine rm -rf /app/node_modules`).
+
+- **`Dockerfile.dev` copia `package.json`/`pnpm-lock.yaml`/`pnpm-workspace.yaml` y corre `sfw pnpm install`
+  ANTES de `COPY . /workspace`** (issue #59, resuelta 2026-09-13): antes el `COPY . /workspace` completo
+  precedía al install, así que cualquier cambio de código (sin tocar dependencias) invalidaba el cache de esa
+  capa y arrastraba una reinstalación completa (~90s por el chequeo de supply-chain de `sfw`) en cada rebuild.
+  Con el manifiesto+lockfile copiados en su propia capa antes, un cambio de código solo invalida el `COPY`
+  final (rápido), nunca la capa de install. Complementado con `.dockerignore` excluyendo `.git` (~100MB) y
+  `coverage/` del build context, que también inflaban ese `COPY` final. El Makefile deja de pasar `--build` en
+  `up-d` (del que dependen `test`/`coverage`/`lint`/`lock-check`) por la misma razón — ya no hace falta forzar
+  un rebuild en cada invocación rutinaria, solo cuando cambian `Dockerfile.dev`/`package.json`/`pnpm-lock.yaml`
+  (`make rebuild-dev`, o `make dev`, que sigue usando `--build` al ser un arranque explícito). No se implementó
+  la propuesta opcional del issue de mover `node_modules` a un volumen nombrado: hoy `audio-sync-app` y
+  `server` bind-montean el mismo `.:/app` y cada uno corre `sfw pnpm install` al arrancar (carrera preexistente,
+  no introducida por este fix) — separar `node_modules` en un volumen compartido entre ambos servicios sin
+  fecha de invalidación clara agregaba complejidad sin resolver el costo real (el chequeo de `sfw` corre igual
+  en cada arranque de contenedor, viva `node_modules` en el bind mount o en un volumen).
 
 (Cuándo correr `/trivy-scan` y cuándo usar la skill `use-railway` está en "Flujo de trabajo recomendado" — no repetido acá.)
 

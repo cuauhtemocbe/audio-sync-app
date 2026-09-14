@@ -44,8 +44,13 @@ RUN SFW_ARCH="$(uname -m)" && \
     curl -fsSL -o /usr/local/bin/sfw "$SFW_URL" && \
     chmod +x /usr/local/bin/sfw
 
-COPY . /workspace
+# Solo el manifiesto + lockfile primero: así un cambio de código fuente (sin tocar dependencias)
+# invalida únicamente la capa de COPY de más abajo, nunca esta capa de install (~90s por el chequeo
+# de supply-chain de sfw). Ver issue #59.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /workspace/
 RUN sfw pnpm install
+
+COPY . /workspace
 
 # Re-crea "node" con el UID/GID pedido si no coincide con el default de la imagen (1000:1000).
 RUN if [ "$(id -u node)" != "$UID" ] || [ "$(id -g node)" != "$GID" ]; then \

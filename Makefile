@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help dev up-d down test coverage build lint license-check lock-check validate
+.PHONY: help dev up-d rebuild-dev down test coverage build lint license-check lock-check validate
 
 # UID/GID de quien invoca make, para que Dockerfile.dev cree el usuario "node" con ese UID/GID
 # (ver el porqué en Dockerfile.dev) — así el bind mount de docker-compose.dev.yml queda
@@ -15,8 +15,11 @@ help: ## Muestra esta ayuda
 dev: ## Levanta el entorno de desarrollo en Docker (foreground, puerto 5173)
 	docker compose -f docker-compose.dev.yml up --build
 
-up-d: ## Levanta el entorno de desarrollo en Docker (background, espera a que esté healthy)
-	docker compose -f docker-compose.dev.yml up -d --build --wait
+up-d: ## Levanta el entorno de desarrollo en Docker (background, espera a que esté healthy; no reconstruye la imagen)
+	docker compose -f docker-compose.dev.yml up -d --wait
+
+rebuild-dev: ## Reconstruye la imagen de dev (correr tras cambiar Dockerfile.dev, package.json o pnpm-lock.yaml)
+	docker compose -f docker-compose.dev.yml build
 
 down: ## Detiene el entorno de desarrollo
 	docker compose -f docker-compose.dev.yml down
