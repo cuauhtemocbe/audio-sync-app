@@ -43,10 +43,16 @@ export default defineConfig({
           functions: 75,
           lines: 100
         },
-        // branches en 85 (no 100): las guardas `if (audioRef.current)` del timer
-        // de polling (línea 25) y de seekTo (línea 34) nunca ejercitan la rama
-        // falsy — solo ocurriría si el ref se vuelve null en una carrera con el
-        // desmontaje, no reproducible de forma realista en un test de render.
+        // branches en 85 (no 100), recalibrado en Wave 4 tras la reescritura a la máquina de 4
+        // estados (specs/wave4-ui-rewrite.md) — medido con `make coverage` sobre el App.jsx actual
+        // (statements/functions/lines ya dan 100 real). Ramas sin ejercitar:
+        // - las guardas `if (audioRef.current)` del timer de polling y de `seekTo` — solo ocurrirían
+        //   si el ref se vuelve null en una carrera con el desmontaje, no reproducible de forma
+        //   realista en un test de render;
+        // - el fallback `error.message || '...'` en `handleGenerate` — los tests solo rechazan
+        //   `generateNarration` con errores que ya traen `message`;
+        // - una de las dos teclas del `onKeyDown` de palabra clickeable (`Enter` || ' ') — los tests
+        //   solo ejercitan una de las dos.
         'src/App.jsx': {
           statements: 100,
           branches: 85,

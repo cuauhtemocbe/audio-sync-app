@@ -41,60 +41,63 @@ excepción de extracción.
 
 ### Functional Requirements
 
-- [ ] Estado de la app como máquina de 4 estados explícitos: `idle` (nada generado todavía),
+- [x] Estado de la app como máquina de 4 estados explícitos: `idle` (nada generado todavía),
       `generating` (pipeline en curso, con progreso `{ completed, total }`), `ready` (audio + words
       disponibles, reproductor visible), `error` (el último intento falló, con `message`).
-- [ ] Textarea controlado para el texto a narrar, con contador de caracteres visible (`{n}
+      Implementado en `App.jsx` (`status` state) y `590c965`.
+- [x] Textarea controlado para el texto a narrar, con contador de caracteres visible (`{n}
       caracteres`) actualizado en cada keystroke. Sin límite máximo hard-coded en la UI — el chunking
       de `generateNarration` ya maneja textos de cualquier longitud (ver "Fuera de scope" de
       `elevenlabs-tts-plan.md`: no se agregan límites nuevos no pedidos).
-- [ ] `<select>` de voz con las opciones de `VOICES` (`src/voices.js`), valor inicial
+- [x] `<select>` de voz con las opciones de `VOICES` (`src/voices.js`), valor inicial
       `DEFAULT_VOICE_ID`. El `value` del select es el `id` de cada voz, la etiqueta visible es `name`.
-- [ ] Botón "Generar": deshabilitado cuando el texto está vacío o es solo whitespace (`text.trim()
+- [x] Botón "Generar": deshabilitado cuando el texto está vacío o es solo whitespace (`text.trim()
       === ''`), o cuando el estado es `generating` (evita doble submit). Al hacer click, invoca
       `generateNarration({ text, voiceId, onProgress })` y transiciona a `generating`.
-- [ ] Durante `generating`, mostrar el progreso recibido vía `onProgress(completed, total)` como texto
+- [x] Durante `generating`, mostrar el progreso recibido vía `onProgress(completed, total)` como texto
       (p.ej. "Generando… (1/3)"); la primera llamada es `(0, total)` — mostrarla como "Generando…
       (0/3)", no ocultar el contador hasta el primer chunk completado.
-- [ ] En éxito (`generateNarration` resuelve `{ audioUrl, words }`): transicionar a `ready`, guardar
+- [x] En éxito (`generateNarration` resuelve `{ audioUrl, words }`): transicionar a `ready`, guardar
       `audioUrl`/`words` en estado, y renderizar el reproductor actual (audio + palabras resaltadas +
       seek + indicador de tiempo) tal como existe hoy, mapeado sobre las `words` dinámicas en vez del
       transcript estático.
-- [ ] En fallo (`generateNarration` rechaza): transicionar a `error` con el `message` del error
+- [x] En fallo (`generateNarration` rechaza): transicionar a `error` con el `message` del error
       (`TtsRequestError.message` si aplica, o `error.message` genérico) visible en la UI; el
       formulario (textarea + select + botón) permanece visible y editable para reintentar — `error` no
       es un estado terminal, el usuario puede corregir el texto/voz y volver a generar.
-- [ ] Regenerar (click en "Generar" estando en `ready` o `error`, con texto/voz iguales o distintos):
+- [x] Regenerar (click en "Generar" estando en `ready` o `error`, con texto/voz iguales o distintos):
       permitido siempre que el botón no esté deshabilitado. Antes de asignar el nuevo `audioUrl`,
       liberar el anterior con `URL.revokeObjectURL` si existía uno (evita acumular Blobs en memoria
       entre generaciones sucesivas de la misma sesión).
-- [ ] Al desmontar el componente, si hay un `audioUrl` activo, liberarlo también con
+- [x] Al desmontar el componente, si hay un `audioUrl` activo, liberarlo también con
       `URL.revokeObjectURL` (mismo criterio de limpieza, vía cleanup de `useEffect`).
-- [ ] Reutilizar sin modificar: `getActiveWordIndex.js` (cálculo de palabra activa), el polling de
+- [x] Reutilizar sin modificar: `getActiveWordIndex.js` (cálculo de palabra activa), el polling de
       `currentTime` cada 100ms, `seekTo` (click/Enter/Espacio en palabra → seek + play), el indicador
       de tiempo en `font-mono`, y `usePrefersReducedMotion` para la transición de color condicional.
-- [ ] Eliminar el modo demo estático: `public/daily_job.mp3`, `src/aligned_transcript.json`,
+- [x] Eliminar el modo demo estático: `public/daily_job.mp3`, `src/aligned_transcript.json`,
       `public/captions.vtt`, el `import transcript from './aligned_transcript.json'`, y el `<track>`
       de captions (ya no aplica — no hay VTT dinámico, fuera de scope explícito del plan original).
       Estos archivos son recuperables de git si hiciera falta (ya documentado en
-      `elevenlabs-tts-plan.md`).
-- [ ] El elemento `<audio>` usa `key={audioUrl}` (o equivalente) para forzar remount cuando cambia la
+      `elevenlabs-tts-plan.md`). Confirmado: ninguno de los tres existe en el árbol de trabajo.
+- [x] El elemento `<audio>` usa `key={audioUrl}` (o equivalente) para forzar remount cuando cambia la
       fuente en una regeneración — evita estado stale del elemento nativo (posición de reproducción,
       buffering) entre un audio y el siguiente.
 
 ### Non-Functional Requirements
 
-- [ ] Accesibilidad: mantener los mismos atributos ya presentes (`role="button"`, `tabIndex`,
+- [x] Accesibilidad: mantener los mismos atributos ya presentes (`role="button"`, `tabIndex`,
       manejo de teclado en palabras clickeables); agregar `<label>` asociado a la textarea y al
       `<select>` de voz (hoy no hay ningún form control en `App.jsx`, esta wave introduce los primeros).
       El progreso de `generating` debe ser anunciado a lectores de pantalla (`aria-live="polite"` en el
       contenedor de estado/progreso/error).
-- [ ] Cobertura: revisar explícitamente los thresholds de `src/App.jsx` en `vite.config.js` (hoy
+- [x] Cobertura: revisar explícitamente los thresholds de `src/App.jsx` en `vite.config.js` (hoy
       `statements:100, branches:85, functions:100, lines:100`, calibrados para el componente estático
       actual) una vez implementado — medir con `make coverage` y fijar los números reales, no
       asumirlos de antemano (mismo criterio que Wave 2/Wave 3: "no adivinar antes de ver el archivo
-      final").
-- [ ] Ningún test de `App.test.jsx` llama a la red real ni a Web Audio real — `generateNarration` se
+      final"). Recalibrado: medido en `100/88.23~91.17/100/100` sobre el `App.jsx` final; thresholds
+      quedaron en `statements:100, branches:85, functions:100, lines:100` (mismos números, comentario
+      actualizado con las ramas reales sin cubrir — ver `vite.config.js`).
+- [x] Ningún test de `App.test.jsx` llama a la red real ni a Web Audio real — `generateNarration` se
       mockea a nivel de módulo (mismo patrón que hoy se mockea `./aligned_transcript.json`), igual que
       `generateNarration.test.js` (Wave 3) mockea `requestTts`/`decodeAudio` en vez de la red/Web Audio
       reales.
@@ -236,13 +239,14 @@ No aplica — fuera de scope (la latencia por chunk secuencial ya se resolvió e
 
 ## Success Criteria
 
-- [ ] Flujo completo usable en `make dev`: escribir texto, elegir voz, generar, escuchar con
+- [x] Flujo completo usable en `make dev`: escribir texto, elegir voz, generar, escuchar con
       highlighting sincronizado, sin el modo demo estático presente en el bundle ni en `public/`.
-- [ ] `make test` verde con la suite de `App.test.jsx` reescrita cubriendo los 4 estados.
-- [ ] `make validate` completo verde (lock-check → lint → coverage → build → license-check), con
+- [x] `make test` verde con la suite de `App.test.jsx` reescrita cubriendo los 4 estados (78 tests).
+- [x] `make validate` completo verde (lock-check → lint → coverage → build → license-check), con
       thresholds de `src/App.jsx` recalibrados y documentados en `vite.config.js` si cambiaron respecto
       a los actuales.
 - [ ] Verificación manual completa (los 6 puntos de la sección correspondiente) confirmada por el
+      usuario. Pendiente — requiere `make dev` con un `ELEVENLABS_API_KEY` real, responsabilidad del
       usuario.
 
 ## Implementation Plan

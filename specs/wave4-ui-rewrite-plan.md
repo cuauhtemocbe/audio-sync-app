@@ -87,14 +87,15 @@ Ninguna nueva.
 
 ## Milestones
 
-- [ ] M1: Assets estáticos eliminados, repo sin referencias muertas (`grep` limpio de
+- [x] M1: Assets estáticos eliminados, repo sin referencias muertas (`grep` limpio de
       `daily_job.mp3`/`aligned_transcript.json`/`captions.vtt` fuera de este plan/spec y de git
       history).
-- [ ] M2: `App.jsx` reescrito, los 4 estados funcionan en `make dev` contra el proxy real (o un
+- [x] M2: `App.jsx` reescrito, los 4 estados funcionan en `make dev` contra el proxy real (o un
       `generateNarration` real si el usuario tiene `ELEVENLABS_API_KEY`).
-- [ ] M3: `App.test.jsx` reescrito, `make test` verde.
-- [ ] M4: Coverage thresholds recalibrados, `make validate` completo verde.
-- [ ] M5: Verificación manual completa por el usuario (los 6 puntos del spec).
+- [x] M3: `App.test.jsx` reescrito, `make test` verde.
+- [x] M4: Coverage thresholds recalibrados, `make validate` completo verde.
+- [ ] M5: Verificación manual completa por el usuario (los 6 puntos del spec). Pendiente —
+      responsabilidad del usuario.
 
 ## Tasks
 
@@ -105,7 +106,7 @@ tocar referencias muertas a mitad de la reescritura.
 
 ### Foundation (Build First)
 
-- [ ] **Task 1: Eliminar modo demo estático**
+- [x] **Task 1: Eliminar modo demo estático**
   - **Acceptance**: `public/daily_job.mp3`, `src/aligned_transcript.json`, `public/captions.vtt` ya no
     existen en el working tree; ningún archivo fuente los referencia (`grep -r` limpio salvo en
     `specs/`).
@@ -116,7 +117,7 @@ tocar referencias muertas a mitad de la reescritura.
 
 ### Component: `App.jsx`
 
-- [ ] **Task 2: Formulario + estado `idle`**
+- [x] **Task 2: Formulario + estado `idle`**
   - **Acceptance**: textarea controlada con contador de caracteres; `<select>` con `VOICES` y
     `DEFAULT_VOICE_ID` preseleccionado; botón "Generar" deshabilitado con texto vacío/whitespace;
     labels asociados a ambos controles.
@@ -124,7 +125,7 @@ tocar referencias muertas a mitad de la reescritura.
   - **Tests**: casos "estado inicial" y "contador de caracteres" del spec.
   - **Effort**: S
 
-- [ ] **Task 3: Transición `idle → generating`, progreso, y llamada a `generateNarration`**
+- [x] **Task 3: Transición `idle → generating`, progreso, y llamada a `generateNarration`**
   - **Acceptance**: click en Generar (con botón habilitado) invoca `generateNarration({ text, voiceId,
     onProgress })`; botón se deshabilita; el progreso recibido por `onProgress` se refleja en la UI en
     cada llamada, incluida la primera `(0, total)`; región de estado con `aria-live="polite"`.
@@ -132,7 +133,7 @@ tocar referencias muertas a mitad de la reescritura.
   - **Tests**: caso "Click en Generar → generating" del spec.
   - **Effort**: M
 
-- [ ] **Task 4: Transición `generating → ready` y reproductor dinámico**
+- [x] **Task 4: Transición `generating → ready` y reproductor dinámico**
   - **Acceptance**: en éxito, `audioUrl`/`words` pasan a estado y se renderiza el reproductor
     (`<audio key={audioUrl}>` + palabras resaltadas + seek por click/teclado + indicador de tiempo)
     reutilizando `getActiveWordIndex.js`/`usePrefersReducedMotion` sin modificarlos.
@@ -141,7 +142,7 @@ tocar referencias muertas a mitad de la reescritura.
     reduced-motion ya cubiertos hoy, ahora sobre `words` de estado).
   - **Effort**: M
 
-- [ ] **Task 5: Transición `generating → error` y reintento**
+- [x] **Task 5: Transición `generating → error` y reintento**
   - **Acceptance**: en fallo, se muestra `error.message` en la región `aria-live`; formulario sigue
     editable y el botón vuelve a habilitarse según la regla de Task 2; un nuevo click en Generar limpia
     el mensaje de error anterior.
@@ -149,7 +150,7 @@ tocar referencias muertas a mitad de la reescritura.
   - **Tests**: casos "Fallo → error" y "Reintento después de error" del spec.
   - **Effort**: S
 
-- [ ] **Task 6: Regeneración y cleanup de `audioUrl`**
+- [x] **Task 6: Regeneración y cleanup de `audioUrl`**
   - **Acceptance**: antes de fijar un nuevo `audioUrl` (desde `ready` o `error`), se llama
     `URL.revokeObjectURL` sobre el anterior si existía; al desmontar el componente con un `audioUrl`
     activo, se llama `URL.revokeObjectURL` vía cleanup de `useEffect`.
@@ -160,12 +161,17 @@ tocar referencias muertas a mitad de la reescritura.
 
 ### Polish
 
-- [ ] **Task 7: Coverage thresholds + `make validate`**
+- [x] **Task 7: Coverage thresholds + `make validate`**
   - **Acceptance**: `vite.config.js` con threshold de `src/App.jsx` calibrado contra la cobertura real
     medida (`make coverage`) del componente terminado; `make validate` completo pasa.
   - **Files**: `vite.config.js`
   - **Tests**: N/A (config).
   - **Effort**: XS
+  - **Result**: medido `100/88.23~91.17/100/100` (statements/branches/functions/lines) sobre el
+    `App.jsx` final — los thresholds numéricos (`100/85/100/100`) no cambiaron respecto al valor
+    calibrado para el demo estático, pero el comentario en `vite.config.js` se actualizó para reflejar
+    las ramas reales sin cubrir (guardas `audioRef.current`, fallback `error.message`, una de las dos
+    teclas del `onKeyDown`). `make validate` pasa completo.
 
 ### Verificación manual (fuera de `make test`, cierra la wave)
 
