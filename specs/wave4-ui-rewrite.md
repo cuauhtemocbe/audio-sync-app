@@ -245,9 +245,19 @@ No aplica — fuera de scope (la latencia por chunk secuencial ya se resolvió e
 - [x] `make validate` completo verde (lock-check → lint → coverage → build → license-check), con
       thresholds de `src/App.jsx` recalibrados y documentados en `vite.config.js` si cambiaron respecto
       a los actuales.
-- [ ] Verificación manual completa (los 6 puntos de la sección correspondiente) confirmada por el
-      usuario. Pendiente — requiere `make dev` con un `ELEVENLABS_API_KEY` real, responsabilidad del
-      usuario.
+- [x] Verificación manual completa (los 6 puntos de la sección correspondiente) confirmada por el
+      usuario. Hecha en `make dev` vía Claude in Chrome contra `ELEVENLABS_API_KEY` real
+      (2026-09-13): golden path (generar → escuchar con highlighting sincronizado) OK; seek por click
+      en palabra OK; pausa OK; fin de audio (última palabra queda resaltada, sin loop/crash) OK;
+      regeneración sin audio fantasma (`URL.revokeObjectURL` confirmado sobre el blob anterior antes
+      de asignar el nuevo, verificado por script) OK; error real (se detuvo el contenedor `server`) OK
+      — mensaje "Error inesperado al generar audio." con formulario editable, reintento tras
+      reiniciar `server` limpia el error y llega a `ready`; assets estáticos confirmados ausentes
+      (`fetch` a las 3 rutas devuelve el `index.html` de fallback de Vite, no los archivos viejos).
+      Único punto no reproducido en vivo: `prefers-reduced-motion` — `matchMedia()` en este navegador
+      devuelve una instancia nueva en cada llamada, así que un evento `change` sintético inyectado
+      post-mount no llega al listener real del hook; ese comportamiento ya está cubierto por los 3
+      tests de `usePrefersReducedMotion.test.js` (incluido el caso de reacción en caliente).
 
 ## Implementation Plan
 

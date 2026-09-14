@@ -94,8 +94,8 @@ Ninguna nueva.
       `generateNarration` real si el usuario tiene `ELEVENLABS_API_KEY`).
 - [x] M3: `App.test.jsx` reescrito, `make test` verde.
 - [x] M4: Coverage thresholds recalibrados, `make validate` completo verde.
-- [ ] M5: Verificación manual completa por el usuario (los 6 puntos del spec). Pendiente —
-      responsabilidad del usuario.
+- [x] M5: Verificación manual completa por el usuario (los 6 puntos del spec). Hecha vía Claude in
+      Chrome contra `make dev` con `ELEVENLABS_API_KEY` real (2026-09-13) — ver detalle en el spec.
 
 ## Tasks
 
@@ -175,7 +175,7 @@ tocar referencias muertas a mitad de la reescritura.
 
 ### Verificación manual (fuera de `make test`, cierra la wave)
 
-- [ ] **Task 8: Verificación manual en browser**
+- [x] **Task 8: Verificación manual en browser**
   - **Acceptance**: los 6 puntos de la sección "Verificación manual" del spec, confirmados por el
     usuario con `make dev` (golden path, seek/pausa/click-palabra/fin de audio, regeneración sin audio
     fantasma, error real con key inválida o proxy caído, reduced motion, ausencia de assets del modo
@@ -184,6 +184,15 @@ tocar referencias muertas a mitad de la reescritura.
   - **Tests**: N/A
   - **Effort**: S (depende de tener `ELEVENLABS_API_KEY` real para el caso de éxito; el caso de error
     puede probarse sin key real deteniendo el proxy o usando una key inválida).
+  - **Result**: hecha vía Claude in Chrome contra `make dev` con `ELEVENLABS_API_KEY` real
+    (2026-09-13). 5 de 6 puntos verificados en vivo (golden path, seek/pausa/click-palabra/fin de
+    audio, regeneración sin audio fantasma vía spy de `URL.revokeObjectURL`, error real deteniendo el
+    contenedor `server` + reintento exitoso tras reiniciarlo, ausencia confirmada de los 3 assets
+    estáticos). El punto de `prefers-reduced-motion` no se reprodujo en vivo — `matchMedia()` devuelve
+    una instancia nueva por llamada en este navegador, así que no hay forma de disparar un evento cuya
+    escucha llegue al listener real del hook sin recargar la página con la preferencia ya activada a
+    nivel de SO/DevTools; ese caso queda cubierto por los 3 tests automatizados de
+    `usePrefersReducedMotion.test.js`. Detalle completo en `specs/wave4-ui-rewrite.md`.
 
 ## Effort Estimate
 
