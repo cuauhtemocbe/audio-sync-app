@@ -16,7 +16,10 @@ dev: ## Levanta el entorno de desarrollo en Docker (foreground, puerto 5173)
 	docker compose -f docker-compose.dev.yml up --build
 
 up-d: ## Levanta el entorno de desarrollo en Docker (background, espera a que esté healthy; no reconstruye la imagen)
-	docker compose -f docker-compose.dev.yml up -d --wait
+	# Solo el servicio audio-sync-app: es el único que exec'ean lint/test/coverage/lock-check.
+	# Traer también "server" acá requeriría el .env real (ELEVENLABS_API_KEY) para que su
+	# healthcheck pase, lo que rompe "up -d --wait" en CI (no hay .env en el runner).
+	docker compose -f docker-compose.dev.yml up -d --wait audio-sync-app
 
 rebuild-dev: ## Reconstruye la imagen de dev (correr tras cambiar Dockerfile.dev, package.json o pnpm-lock.yaml)
 	docker compose -f docker-compose.dev.yml build
