@@ -1,4 +1,4 @@
-FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS builder
+FROM node:26-alpine@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868 AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ RUN pnpm run build
 
 # Etapa separada para las dependencias de producción: server/index.js solo necesita "express" en
 # runtime, no todo devDependencies (vite, vitest, eslint, ...) que sí hacen falta para el build.
-FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS deps
+FROM node:26-alpine@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868 AS deps
 
 WORKDIR /app
 RUN npm install -g pnpm@11.14.0
@@ -29,7 +29,7 @@ RUN pnpm install --frozen-lockfile --prod
 # nada corriendo del otro lado) — la app en producción quedaba sirviendo solo el frontend estático,
 # sin backend real. Correr server/index.js directo acá es la forma mínima de tener un solo proceso
 # que sirva ambas cosas, sin agregar un segundo servicio en Railway ni reintroducir nginx como proxy.
-FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019
+FROM node:26-alpine@sha256:ef24c5053d50fdc3e4e56eb4e7ddb7861874ab0fdc797046ba897581deb8e868
 
 WORKDIR /app
 
