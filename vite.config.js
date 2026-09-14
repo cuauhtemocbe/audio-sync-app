@@ -84,6 +84,29 @@ export default defineConfig({
           branches: 100,
           functions: 100,
           lines: 100
+        },
+        // Wave 3 (ElevenLabs TTS, specs/wave3-orchestration-audio.md): orquestación + audio.
+        'src/elevenLabsApi.js': {
+          statements: 100,
+          branches: 100,
+          functions: 100,
+          lines: 100
+        },
+        'src/voices.js': {
+          statements: 100,
+          branches: 100,
+          functions: 100,
+          lines: 100
+        },
+        // defaultDecodeAudio (líneas ~93-99: instancia AudioContext y llama decodeAudioData) nunca
+        // se ejercita en tests — jsdom no implementa Web Audio API, así que todos los tests inyectan
+        // un decodeAudio fake por diseño (ver spec). Ese único bloque explica el resto por debajo de
+        // 100%; se verifica solo en la verificación manual en browser de esta wave.
+        'src/generateNarration.js': {
+          statements: 90,
+          branches: 65,
+          functions: 85,
+          lines: 90
         }
       }
     }
