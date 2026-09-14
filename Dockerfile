@@ -13,48 +13,41 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm run build
 
-FROM nginx:alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d5913
+# Etapa separada para las dependencias de producción: server/index.js solo necesita "express" en
+# runtime, no todo devDependencies (vite, vitest, eslint, ...) que sí hacen falta para el build.
+FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS deps
 
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+WORKDIR /app
+RUN npm install -g pnpm@11.14.0
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile --prod
 
-# La imagen ya trae un usuario "nginx" (uid 101) sin privilegios; solo falta darle
-# permiso de escritura donde nginx necesita escribir en runtime y escuchar en un
-# puerto no privilegiado (>1024) para no requerir root. chown en /run (no solo en
-# nginx.pid) es necesario porque unlink() de un archivo requiere permiso de escritura
-# sobre el directorio que lo contiene, no sobre el archivo — sin esto, nginx tira
-# "unlink() /run/nginx.pid failed (13: Permission denied)" en cada shutdown/reload.
-# Ojo: se usa /run y no /var/run — el chown de BusyBox (Alpine) no sigue symlinks para
-# el último componente del path, así que "chown /var/run" solo re-dueña el symlink en
-# sí (/var/run -> /run), dejando el directorio real /run intacto como root:root.
-RUN chown -R nginx:nginx /var/cache/nginx /usr/share/nginx/html /etc/nginx/conf.d /run && \
-    touch /var/run/nginx.pid && \
-    chown nginx:nginx /var/run/nginx.pid
+# Antes esta etapa final era nginx sirviendo solo el estático de dist/ — pero server/index.js
+# (agregado para el proxy de ElevenLabs) ya sirve dist/ vía express.static Y expone /api/tts desde
+# el mismo proceso. Con un único servicio en Railway, nginx nunca podía llegar a /api/tts (no tenía
+# ninguna location para esa ruta: nginx respondía 405 en vez de proxyearlo a nada, porque no había
+# nada corriendo del otro lado) — la app en producción quedaba sirviendo solo el frontend estático,
+# sin backend real. Correr server/index.js directo acá es la forma mínima de tener un solo proceso
+# que sirva ambas cosas, sin agregar un segundo servicio en Railway ni reintroducir nginx como proxy.
+FROM node:26-alpine@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019
 
-# curl y nginx-module-image-filter vienen instalados por default en nginx:alpine pero no se usan en runtime
-# (nginx no enlaza contra libcurl, y nginx.conf no carga image_filter). Removerlos purga también sus
-# dependencias huérfanas (c-ares, libcurl, libgd, fontconfig, libexpat, ...) y elimina las CVEs HIGH que
-# arrastraban (ver issue #17). wget queda intacto para el HEALTHCHECK.
-RUN apk del curl nginx-module-image-filter
+WORKDIR /app
 
-# worker_processes auto detecta los cores del host, no la cuota de CPU del contenedor (Railway: 1 vCPU) —
-# en ese entorno "auto" resolvía a ~78 workers, y el fork de todos ellos tardaba lo suficiente como para
-# que el healthcheck de arranque matara el proceso (SIGQUIT) antes de que nginx llegara a aceptar
-# conexiones: el contenedor quedaba "corriendo" en Railway pero rechazando toda conexión (502).
-# La directiva "user nginx;" del nginx.conf base se quita porque ya corremos como USER nginx (no root):
-# con root ya cedido, esa línea no hace nada salvo tirar un warning en cada arranque.
-RUN sed -i \
-    -e 's/worker_processes  auto;/worker_processes 1;/' \
-    -e '/^user  nginx;/d' \
-    /etc/nginx/nginx.conf
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --chown=node:node package.json ./
+COPY --chown=node:node server ./server
 
-USER nginx
+USER node
 
+ENV NODE_ENV=production
 ENV PORT=8080
 
 EXPOSE ${PORT}
 
+# server/index.js expone /healthz (200 JSON) para este healthcheck — evita depender de curl/wget,
+# que ya no vienen instalados en esta imagen (no hace falta purgarlos como en la etapa nginx de antes).
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT}/ || exit 1
+  CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||8080)+'/healthz', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "server/index.js"]

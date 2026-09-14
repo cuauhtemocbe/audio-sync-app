@@ -8,8 +8,14 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=${PORT:-8080}
+    # required: false por la misma razón que en docker-compose.dev.yml: sin esto, levantar este
+    # compose sin .env local aborta antes de arrancar en vez de fallar recién en runtime (server/
+    # index.js exige ELEVENLABS_API_KEY y hace process.exit(1) si falta).
+    env_file:
+      - path: .env
+        required: false
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT:-8080}/"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT:-8080}/healthz"]
       interval: 30s
       timeout: 3s
       retries: 3
