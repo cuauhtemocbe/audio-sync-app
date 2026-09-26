@@ -5,18 +5,11 @@ name: Container security
 # porque los CVEs de la imagen base aparecen sin ningún cambio de código.
 
 on:
+  # Sin filtro `paths:` a propósito: trivy-image y trivy-config son checks requeridos en branch
+  # protection, y un check requerido filtrado por paths nunca reporta en los PRs que no tocan esos
+  # archivos, dejando el merge bloqueado.
   pull_request:
     branches: [main]
-    paths:
-      - Dockerfile
-      - .dockerignore
-      - docker-compose.prod.yml
-      - package.json
-      - pnpm-lock.yaml
-      - pnpm-workspace.yaml
-      - server/**
-      - .trivyignore.yaml
-      - .github/workflows/container-security.yml
   push:
     branches: [main]
   schedule:
