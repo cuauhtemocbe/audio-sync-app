@@ -1,0 +1,60 @@
+name: Container security
+
+# Escaneo de CVEs de la imagen + misconfig de Dockerfile (meta-projects#56). El escaneo de lockfile
+# del pre-push (#41) no ve los paquetes del SO de la imagen base; este sí. Corre también semanal
+# porque los CVEs de la imagen base aparecen sin ningún cambio de código.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - docker-compose.prod.yml
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - server/**
+      - .trivyignore.yaml
+      - .github/workflows/container-security.yml
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 1" # lunes 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Mismo build que "make build" (sin build args ni secretos, contexto "."). Nunca se pushea.
+      - name: Build production image
+        run: docker build -t audio-sync-app:scan .
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: audio-sync-app:scan
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+  trivy-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Trivy Dockerfile misconfig scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          # Dockerfile.dev es tooling local, no una imagen de producción.
+          skip-files: Dockerfile.dev
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
