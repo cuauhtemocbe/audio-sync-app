@@ -11,8 +11,10 @@ const DEFAULT_MAX_CHARS = 2500
 function splitIntoSentences(text) {
   const rawSentences = text.match(/[^.!?]+[.!?]*/g) || []
   return rawSentences.map((raw) => {
-    const [, separator, content] = raw.match(/^(\s*)([\s\S]*)$/)
-    return { separator, content }
+    // /^\s*/ + slice en vez de /^(\s*)([\s\S]*)$/: los dos cuantificadores solapados de esa regex
+    // tienen costo super-lineal por backtracking (Sonar S8786).
+    const [separator] = raw.match(/^\s*/)
+    return { separator, content: raw.slice(separator.length) }
   })
 }
 
