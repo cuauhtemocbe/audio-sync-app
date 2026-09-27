@@ -143,6 +143,15 @@ describe('App', () => {
     expect(screen.getByText('world')).not.toHaveClass('text-vu-peak')
   })
 
+  it('el <audio> incluye un <track kind="captions">', async () => {
+    generateNarration.mockResolvedValue({ audioUrl: 'blob:fake-url', words: WORDS_FIXTURE })
+    const { container } = render(<App />)
+    fireEvent.change(screen.getByLabelText('Texto a narrar'), { target: { value: 'Hola mundo' } })
+    await generateAndWaitForReady(container)
+
+    expect(getAudioElement(container).querySelector('track[kind="captions"]')).not.toBeNull()
+  })
+
   it('al hacer click en una palabra de tipo texto, busca y reproduce en su timestamp', async () => {
     generateNarration.mockResolvedValue({ audioUrl: 'blob:fake-url', words: WORDS_FIXTURE })
     const { container } = render(<App />)

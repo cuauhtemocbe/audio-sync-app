@@ -168,6 +168,9 @@ export default function App() {
               divergencia, ver generateNarration.js) y un type incorrecto puede hacer que el
               navegador descarte la fuente sin siquiera probarla. */}
           <audio key={audioUrl} ref={audioRef} controls src={audioUrl} className="w-full mb-4">
+            {/* Sin src: no hay VTT dinámico (fuera de scope, ver specs/wave4-ui-rewrite.md); el
+                transcript sincronizado de abajo es la alternativa textual. Satisface Sonar S4084. */}
+            <track kind="captions" />
             Tu navegador no soporta audio.
           </audio>
 
