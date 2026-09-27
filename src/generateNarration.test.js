@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { chunkText } from './chunkText'
 import { concatMp3Chunks, encodeWavBlob, generateNarration } from './generateNarration'
 import { normalizeText } from './normalizeText'
@@ -74,6 +74,16 @@ describe('encodeWavBlob', () => {
 })
 
 describe('generateNarration', () => {
+  // jsdom >= 30.1 trae su propio URL.createObjectURL, que no acepta el Blob que construye el
+  // código bajo test; se stubbea para no depender de esa implementación.
+  beforeEach(() => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:fake-url')
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('texto vacío (0 chunks) rechaza sin llamar requestTts', async () => {
     const requestTtsImpl = vi.fn()
     const decodeAudio = vi.fn()
