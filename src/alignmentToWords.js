@@ -11,7 +11,7 @@ export function alignmentToWords(alignment) {
   const ends = alignment?.character_end_times_seconds
 
   if (!Array.isArray(characters) || !Array.isArray(starts) || !Array.isArray(ends)) {
-    throw new Error('alignmentToWords: alignment inválido (faltan characters/start/end times)')
+    throw new TypeError('alignmentToWords: alignment inválido (faltan characters/start/end times)')
   }
   if (characters.length !== starts.length || characters.length !== ends.length) {
     throw new Error(

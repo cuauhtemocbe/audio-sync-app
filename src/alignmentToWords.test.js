@@ -108,6 +108,7 @@ describe('alignmentToWords', () => {
   it('Exceptional: alignment sin los arrays esperados lanza un error explícito', () => {
     expect(() => alignmentToWords({})).toThrow(/inválido/)
     expect(() => alignmentToWords(undefined)).toThrow(/inválido/)
+    expect(() => alignmentToWords({})).toThrow(TypeError)
   })
 
   it('Simple: el output es consumible por getActiveWordIndex sin modificarlo', () => {

@@ -33,7 +33,7 @@ export function concatMp3Chunks(chunks) {
 
 function writeAsciiString(view, offset, string) {
   for (let i = 0; i < string.length; i++) {
-    view.setUint8(offset + i, string.charCodeAt(i))
+    view.setUint8(offset + i, string.codePointAt(i))
   }
 }
 
@@ -84,7 +84,7 @@ function decodeBase64ToBytes(base64) {
   const binary = atob(base64)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i)
+    bytes[i] = binary.codePointAt(i)
   }
   return bytes
 }
