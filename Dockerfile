@@ -33,6 +33,10 @@ FROM node:26-alpine@sha256:0b36e8c136b94cd4fcf02188228e76c31ad5872eef3fec8cbd2ee
 
 WORKDIR /app
 
+# El runtime solo ejecuta `node server/index.js`: npm/npx no hacen falta. Se eliminan para que las
+# dependencias embebidas de npm (brace-expansion, undici, ...) no viajen en la imagen final.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/dist ./dist
 COPY --chown=node:node package.json ./
